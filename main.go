@@ -5,11 +5,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
+	//"io"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strings"
+	//"strings"
 	//"strconv"
 )
 
@@ -43,6 +43,7 @@ func main() {
 	type Stock struct {
 		Symbol           string `json:"symbol"`
 		Exchange         string `json:"exchange"`
+		Name             string `json:"name"`
 		Change           string `json:"c"`
 		Close            string `json:"l"`
 		PercentageChange string `json:"cp"`
@@ -58,33 +59,54 @@ func main() {
 		Shares           string `json:"shares"`
 	}
 
-	dec := json.NewDecoder(strings.NewReader(jsonString))
-	for {
-		var m Stock
-		if err := dec.Decode(&m); err == io.EOF {
-			break
-		} else if err != nil {
-			log.Fatal(err)
+	type Stocks struct {
+		StockSingle Stock
+	}
+
+	raw := make([]json.RawMessage, 10)
+	if err := json.Unmarshal(jsonString, &raw); err != nil {
+		log.Fatalf("error %v", err)
+	}
+
+	stockList := make([]Stocks, 0)
+
+	for i := 0; i < len(raw); i += 1 {
+		stocks := Stocks{}
+
+		stock := Stock{}
+		if err := json.Unmarshal(raw[i], &stock); err != nil {
+			fmt.Println("error %v", err)
+		} else {
+			stocks.StockSingle = stock
 		}
+
+		stockList = append(stockList, stocks)
+	}
+	fmt.Printf("%v\n", stockList)
+
+	for i := range stockList {
+		stock := stockList[i].StockSingle
 		fmt.Printf("=====================================\n")
-		fmt.Printf("%s: %s\n", m.Symbol, m.Exchange)
-		fmt.Printf("Change: %s - %s\n", m.Change, m.PercentageChange)
-		fmt.Printf("Open:   %s, Close:   %s\n", m.Open, m.Close)
-		fmt.Printf("High:   %s, Low:     %s\n", m.High, m.Low)
-		fmt.Printf("Volume: %s, Average Volume:     %s\n", m.Volume, m.AverageVolume)
-		fmt.Printf("High 52: %s, Low 52:     %s\n", m.High52, m.Low52)
-		fmt.Printf("Market Cap: %s\n", m.MarketCap)
-		fmt.Printf("EPS: %s\n", m.EPS)
-		fmt.Printf("Shares: %s\n", m.Shares)
+		fmt.Printf("%s\n", stock.Name)
+		fmt.Printf("%s: %s\n", stock.Symbol, stock.Exchange)
+		fmt.Printf("Change: %s : %s%%\n", stock.Change, stock.PercentageChange)
+		fmt.Printf("Open:   %s, Close:   %s\n", stock.Open, stock.Close)
+		fmt.Printf("High:   %s, Low:     %s\n", stock.High, stock.Low)
+		fmt.Printf("Volume: %s, Average Volume:     %s\n", stock.Volume, stock.AverageVolume)
+		fmt.Printf("High 52: %s, Low 52:     %s\n", stock.High52, stock.Low52)
+		fmt.Printf("Market Cap: %s\n", stock.MarketCap)
+		fmt.Printf("EPS: %s\n", stock.EPS)
+		fmt.Printf("Shares: %s\n", stock.Shares)
 		fmt.Printf("=====================================\n")
 	}
 
 }
 
-func sanitizeBody(source string, body []byte) (bodyResponse string) {
+func sanitizeBody(source string, body []byte) (bodyResponse []byte) {
 	switch source {
 	case "google":
-		body = body[6 : len(body)-2]
+		body = body[4 : len(body)-1]
+		//body = body[3 : len(body)-1]
 
 		body = bytes.Replace(body, []byte("\\x2F"), []byte("/"), -1)
 		body = bytes.Replace(body, []byte("\\x26"), []byte("&"), -1)
@@ -92,7 +114,7 @@ func sanitizeBody(source string, body []byte) (bodyResponse string) {
 		body = bytes.Replace(body, []byte("\\x27"), []byte("'"), -1)
 	}
 
-	bodyResponse = string(body)
+	bodyResponse = body
 
 	return
 
