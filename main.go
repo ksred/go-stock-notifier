@@ -5,27 +5,52 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	//"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/smtp"
+	"os"
 	//"strings"
 	//"strconv"
 )
 
-type StockData struct {
-	symbol   string
-	exchange string
+type Configuration struct {
+	MailUser       string
+	MailPass       string
+	MailSMTPServer string
+	MailSMTPPort   string
+	MailRecipient  string
+	MailSender     string
+	Symbols        []string
 }
 
 func main() {
+	// Get config
+	file, _ := os.Open("config.json")
+	decoder := json.NewDecoder(file)
+	configuration := Configuration{}
+	err := decoder.Decode(&configuration)
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+
+	var symbolString string
+	for i := range configuration.Symbols {
+		symbol := []byte(configuration.Symbols[i])
+		symbol = bytes.Replace(symbol, []byte(":"), []byte("%3A"), -1)
+		symbolString += string(symbol)
+		if i < len(configuration.Symbols)-1 {
+			symbolString += ","
+		}
+	}
+
 	// Yahoo: http://chartapi.finance.yahoo.com/instrument/1.0/msft/chartdata;type=quote;ys=2005;yz=4;ts=1234567890/json
 
 	// URL to get detailed company information for a single stock
 	// var urlDetailed string = "https://www.google.com/finance?q=JSE%3AIMP&q=JSE%3ANPN&ei=TrUBVomhAsKcUsP5mZAG&output=json"
 
 	// URL to get broad financials for multiple stocks
-	var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=JSE%3ANPN,JSE%3AIMP"
+	var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
 
 	resp, err := http.Get(urlStocks)
 	if err != nil {
@@ -34,7 +59,7 @@ func main() {
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	/*
-		body, err := ioutil.ReadFile("/Users/ksred/golang/gobank/stock-notifier/data.json")
+		body, err := ioutil.ReadFile("data.json")
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -85,22 +110,40 @@ func main() {
 		stockList = append(stockList, stocks)
 	}
 
-	//fmt.Printf("%v\n", stockList)
-
+	var notifyMail string
 	for i := range stockList {
 		stock := stockList[i].Stock
-		fmt.Printf("=====================================\n")
-		fmt.Printf("%s\n", stock.Name)
-		fmt.Printf("%s: %s\n", stock.Symbol, stock.Exchange)
-		fmt.Printf("Change: %s : %s%%\n", stock.Change, stock.PercentageChange)
-		fmt.Printf("Open:   %s, Close:   %s\n", stock.Open, stock.Close)
-		fmt.Printf("High:   %s, Low:     %s\n", stock.High, stock.Low)
-		fmt.Printf("Volume: %s, Average Volume:     %s\n", stock.Volume, stock.AverageVolume)
-		fmt.Printf("High 52: %s, Low 52:     %s\n", stock.High52, stock.Low52)
-		fmt.Printf("Market Cap: %s\n", stock.MarketCap)
-		fmt.Printf("EPS: %s\n", stock.EPS)
-		fmt.Printf("Shares: %s\n", stock.Shares)
-		fmt.Printf("=====================================\n")
+		notifyMail += fmt.Sprintf("=====================================\n")
+		notifyMail += fmt.Sprintf("%s\n", stock.Name)
+		notifyMail += fmt.Sprintf("%s: %s\n", stock.Symbol, stock.Exchange)
+		notifyMail += fmt.Sprintf("Change: %s : %s%%\n", stock.Change, stock.PercentageChange)
+		notifyMail += fmt.Sprintf("Open:   %s, Close:   %s\n", stock.Open, stock.Close)
+		notifyMail += fmt.Sprintf("High:   %s, Low:     %s\n", stock.High, stock.Low)
+		notifyMail += fmt.Sprintf("Volume: %s, Average Volume:     %s\n", stock.Volume, stock.AverageVolume)
+		notifyMail += fmt.Sprintf("High 52: %s, Low 52:     %s\n", stock.High52, stock.Low52)
+		notifyMail += fmt.Sprintf("Market Cap: %s\n", stock.MarketCap)
+		notifyMail += fmt.Sprintf("EPS: %s\n", stock.EPS)
+		notifyMail += fmt.Sprintf("Shares: %s\n", stock.Shares)
+		notifyMail += fmt.Sprintf("=====================================\n")
+	}
+
+	// Send email
+	// Set up authentication information.
+	auth := smtp.PlainAuth("", configuration.MailUser, configuration.MailPass, configuration.MailSMTPServer)
+
+	// Connect to the server, authenticate, set the sender and recipient,
+	// and send the email all in one step.
+	to := []string{configuration.MailRecipient}
+	msg := []byte("To: " + configuration.MailRecipient + "\r\n" +
+		"Subject: Quote update!\r\n" +
+		"\r\n" +
+		notifyMail +
+		".\r\n")
+
+	err = smtp.SendMail(configuration.MailSMTPServer+":"+configuration.MailSMTPPort, auth, configuration.MailSender, to, msg)
+	//err = smtp.SendMail("mail.messagingengine.com:587", auth, "ksred@fastmail.fm", []string{"kyle@ksred.me"}, msg)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 }

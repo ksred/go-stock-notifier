@@ -1,0 +1,10 @@
+
+{
+    "MailSMTPServer"    :   "mail.server.com",
+    "MailSMTPPort"      :   "587",
+    "MailUser"          :   "user@mail.com",
+    "MailPass"          :   "plaintext_password",
+    "MailRecipient"     :   "recipient@mail.com",
+    "MailSender"        :   "sender@mail.com",
+    "Symbols"           :   ["NASDAQ:GOOGL", "NYSE:BLK"] //Format: exhange:stock
+}
