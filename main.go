@@ -20,9 +20,14 @@ type StockData struct {
 
 func main() {
 	// Yahoo: http://chartapi.finance.yahoo.com/instrument/1.0/msft/chartdata;type=quote;ys=2005;yz=4;ts=1234567890/json
-	var urlIMP string = "https://www.google.com/finance?q=JSE%3AIMP&ei=TrUBVomhAsKcUsP5mZAG&output=json"
 
-	resp, err := http.Get(urlIMP)
+	// URL to get detailed company information for a single stock
+	// var urlDetailed string = "https://www.google.com/finance?q=JSE%3AIMP&q=JSE%3ANPN&ei=TrUBVomhAsKcUsP5mZAG&output=json"
+
+	// URL to get broad financials for multiple stocks
+	var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=JSE%3ANPN,JSE%3AIMP"
+
+	resp, err := http.Get(urlStocks)
 	if err != nil {
 		// handle error
 	}
@@ -37,12 +42,9 @@ func main() {
 
 	jsonString := sanitizeBody("google", body)
 
-	//fmt.Println(jsonString)
-
-	// Do some json
 	type StockSingle struct {
-		Symbol           string `json:"symbol"`
-		Exchange         string `json:"exchange"`
+		Symbol           string `json:"t"`
+		Exchange         string `json:"e"`
 		Name             string `json:"name"`
 		Change           string `json:"c"`
 		Close            string `json:"l"`
@@ -82,7 +84,8 @@ func main() {
 
 		stockList = append(stockList, stocks)
 	}
-	fmt.Printf("%v\n", stockList)
+
+	//fmt.Printf("%v\n", stockList)
 
 	for i := range stockList {
 		stock := stockList[i].Stock
