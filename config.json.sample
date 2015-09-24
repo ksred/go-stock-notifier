@@ -7,4 +7,6 @@
     "MailRecipient"     :   "recipient@mail.com",
     "MailSender"        :   "sender@mail.com",
     "Symbols"           :   ["NASDAQ:GOOGL", "NYSE:BLK"] //Format: exhange:stock
+    "UpdateInterval"    :   "100", // in seconds
+    "TimeZone"          :   "America/New_York" 
 }
