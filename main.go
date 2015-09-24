@@ -40,7 +40,7 @@ func main() {
 	//fmt.Println(jsonString)
 
 	// Do some json
-	type Stock struct {
+	type StockSingle struct {
 		Symbol           string `json:"symbol"`
 		Exchange         string `json:"exchange"`
 		Name             string `json:"name"`
@@ -60,7 +60,7 @@ func main() {
 	}
 
 	type Stocks struct {
-		StockSingle Stock
+		Stock StockSingle
 	}
 
 	raw := make([]json.RawMessage, 10)
@@ -73,11 +73,11 @@ func main() {
 	for i := 0; i < len(raw); i += 1 {
 		stocks := Stocks{}
 
-		stock := Stock{}
+		stock := StockSingle{}
 		if err := json.Unmarshal(raw[i], &stock); err != nil {
 			fmt.Println("error %v", err)
 		} else {
-			stocks.StockSingle = stock
+			stocks.Stock = stock
 		}
 
 		stockList = append(stockList, stocks)
@@ -85,7 +85,7 @@ func main() {
 	fmt.Printf("%v\n", stockList)
 
 	for i := range stockList {
-		stock := stockList[i].StockSingle
+		stock := stockList[i].Stock
 		fmt.Printf("=====================================\n")
 		fmt.Printf("%s\n", stock.Name)
 		fmt.Printf("%s: %s\n", stock.Symbol, stock.Exchange)
