@@ -63,9 +63,9 @@ func main() {
 	// URL to get broad financials for multiple stocks
 	var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
 
-	// Hard code to 3 hours for now
+	// We check for updates every minute
 	//duration, _ := time.ParseDuration(configuration.UpdateInterval)
-	go updateAtInterval(10800, urlStocks, configuration) // very useful for interval polling
+	go updateAtInterval(60, urlStocks, configuration) // very useful for interval polling
 
 	select {} // this will cause the program to run forever
 }
@@ -80,9 +80,16 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 			fmt.Println("err: ", err.Error())
 		}
 		hour := t.In(utc).Hour()
+		minute := t.In(utc).Minute()
 
 		// This must only be run when the markets are open
-		if hour >= 9 && hour < 17 {
+		switch {
+		//@TODO Make this dynamic from config
+		case hour == 9 && minute == 00:
+		case hour == 11 && minute == 00:
+		case hour == 13 && minute == 00:
+		case hour == 15 && minute == 00:
+		case hour == 17 && minute == 00:
 			body := getDataFromURL(urlStocks)
 
 			jsonString := sanitizeBody("google", body)
