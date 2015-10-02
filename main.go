@@ -3,8 +3,11 @@ package main
 import (
 	//"encoding/hex"
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
+	//@TODO Move into separate packge
+	_ "github.com/go-sql-driver/mysql"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -25,6 +28,11 @@ type Configuration struct {
 	Symbols        []string
 	UpdateInterval string
 	TimeZone       string
+	MySQLUser      string
+	MySQLPass      string
+	MySQLHost      string
+	MySQLPort      string
+	MySQLDB        string
 }
 
 type StockSingle struct {
@@ -55,6 +63,9 @@ func main() {
 	configuration := Configuration{}
 	loadConfig(&configuration)
 
+	//@TODO Move this into a function/package
+	db := loadDatabase(&configuration)
+
 	symbolString := convertStocksString(configuration.Symbols)
 
 	// Yahoo: http://chartapi.finance.yahoo.com/instrument/1.0/msft/chartdata;type=quote;ys=2005;yz=4;ts=1234567890/json
@@ -65,12 +76,12 @@ func main() {
 
 	// We check for updates every minute
 	//duration, _ := time.ParseDuration(configuration.UpdateInterval)
-	go updateAtInterval(60, urlStocks, configuration) // very useful for interval polling
+	go updateAtInterval(60, urlStocks, configuration, db) // very useful for interval polling
 
 	select {} // this will cause the program to run forever
 }
 
-func updateAtInterval(n time.Duration, urlStocks string, configuration Configuration) {
+func updateAtInterval(n time.Duration, urlStocks string, configuration Configuration, db *sql.DB) {
 
 	for _ = range time.Tick(n * time.Second) {
 		t := time.Now()
@@ -100,6 +111,8 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 			notifyMail := composeMailString(stockList)
 
 			sendMail(configuration, notifyMail)
+
+			saveToDB(db, stockList)
 		}
 	}
 }
@@ -215,5 +228,74 @@ func sendMail(configuration Configuration, notifyMail string) {
 	//err = smtp.SendMail("mail.messagingengine.com:587", auth, "ksred@fastmail.fm", []string{"kyle@ksred.me"}, msg)
 	if err != nil {
 		log.Fatal(err)
+	}
+}
+
+func loadDatabase(configuration *Configuration) (db *sql.DB) {
+	db, err := sql.Open("mysql", "user:password@/dbname")
+	if err != nil {
+		fmt.Println("Could not connect to database")
+		return
+	}
+
+	initDB(db)
+
+	return
+}
+
+func initDB(db *sql.DB) {
+	createTables := "CREATE TABLE IF NOT EXISTS st_data ("
+	createTables += "symbol varchar(255)"
+	createTables += "exchange varchar(255)"
+	createTables += "name varchar(255)"
+	createTables += "change float"
+	createTables += "close float"
+	createTables += "percentageChange float"
+	createTables += "open float"
+	createTables += "high float"
+	createTables += "low float"
+	createTables += "volume float"
+	createTables += "avgVolume float"
+	createTables += "high52 float"
+	createTables += "low52 float"
+	createTables += "marketCap float"
+	createTables += "eps float"
+	createTables += "shares float"
+	createTables += "time int"
+	createTables += "day int"
+	createTables += "month int"
+	createTables += "year int"
+	createTables += ");"
+
+	_, err := db.Exec(
+		createTables,
+		"",
+		27,
+	)
+
+	if err != nil {
+		fmt.Println("Could not create tables")
+		return
+	}
+
+	return
+}
+
+func saveToDB(db *sql.DB, stockList []Stocks) {
+
+	for i := range stockList {
+		//@TODO Save results to database
+		stock := stockList[i].Stock
+		saveResults := stock.Symbol + ""
+
+		_, err := db.Exec(
+			saveResults,
+			"",
+			27,
+		)
+
+		if err != nil {
+			fmt.Println("Could not save results")
+		}
 	}
 }
