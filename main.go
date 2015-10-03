@@ -8,7 +8,7 @@ import (
 	"fmt"
 	//@TODO Move into separate packge
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/ksred/stock-analysis"
+	"github.com/ksred/go-stock-analysis"
 	"io/ioutil"
 	"log"
 	"math"
@@ -20,49 +20,9 @@ import (
 	"time"
 )
 
-type Configuration struct {
-	MailUser       string
-	MailPass       string
-	MailSMTPServer string
-	MailSMTPPort   string
-	MailRecipient  string
-	MailSender     string
-	Symbols        []string
-	UpdateInterval string
-	TimeZone       string
-	MySQLUser      string
-	MySQLPass      string
-	MySQLHost      string
-	MySQLPort      string
-	MySQLDB        string
-}
-
-type StockSingle struct {
-	Symbol           string `json:"t"`
-	Exchange         string `json:"e"`
-	Name             string `json:"name"`
-	Change           string `json:"c"`
-	Close            string `json:"l"`
-	PercentageChange string `json:"cp"`
-	Open             string `json:"op"`
-	High             string `json:"hi"`
-	Low              string `json:"lo"`
-	Volume           string `json:"vo"`
-	AverageVolume    string `json:"avvo"`
-	High52           string `json:"hi52"`
-	Low52            string `json:"lo52"`
-	MarketCap        string `json:"mc"`
-	EPS              string `json:"eps"`
-	Shares           string `json:"shares"`
-}
-
-type Stocks struct {
-	Stock StockSingle
-}
-
 func main() {
 
-	configuration := Configuration{}
+	configuration := StockAnalysis.Configuration{}
 	loadConfig(&configuration)
 
 	//@TODO Move this into a function/package
@@ -83,7 +43,7 @@ func main() {
 	select {} // this will cause the program to run forever
 }
 
-func updateAtInterval(n time.Duration, urlStocks string, configuration Configuration, db *sql.DB) {
+func updateAtInterval(n time.Duration, urlStocks string, configuration StockAnalysis.Configuration, db *sql.DB) {
 
 	for _ = range time.Tick(n * time.Second) {
 		t := time.Now()
@@ -106,7 +66,7 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 
 				jsonString := sanitizeBody("google", body)
 
-				stockList := make([]Stocks, 0)
+				stockList := make([]StockAnalysis.Stocks, 0)
 				stockList = parseJSONData(jsonString)
 
 				saveToDB(db, stockList, configuration)
@@ -123,7 +83,7 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 				case hour == 17 && minute < 5:
 					fmt.Println("\t\tAt close\n")
 					// Calculate any trends at end of day
-					trendingStocks := stockAnalysis.calculateTrends(configuration, stockList, db)
+					trendingStocks := StockAnalysis.CalculateTrends(configuration, stockList, db)
 					notifyMail := composeMailString(trendingStocks, "trend")
 					sendMail(configuration, notifyMail)
 				}
@@ -133,7 +93,7 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 	}
 }
 
-func loadConfig(configuration *Configuration) {
+func loadConfig(configuration *StockAnalysis.Configuration) {
 	// Get config
 	file, _ := os.Open("config.json")
 	decoder := json.NewDecoder(file)
@@ -184,16 +144,16 @@ func getDataFromURL(urlStocks string) (body []byte) {
 	return
 }
 
-func parseJSONData(jsonString []byte) (stockList []Stocks) {
+func parseJSONData(jsonString []byte) (stockList []StockAnalysis.Stocks) {
 	raw := make([]json.RawMessage, 10)
 	if err := json.Unmarshal(jsonString, &raw); err != nil {
 		log.Fatalf("error %v", err)
 	}
 
 	for i := 0; i < len(raw); i += 1 {
-		stocks := Stocks{}
+		stocks := StockAnalysis.Stocks{}
 
-		stock := StockSingle{}
+		stock := StockAnalysis.StockSingle{}
 		if err := json.Unmarshal(raw[i], &stock); err != nil {
 			fmt.Println("error %v", err)
 		} else {
@@ -206,7 +166,7 @@ func parseJSONData(jsonString []byte) (stockList []Stocks) {
 	return
 }
 
-func composeMailString(stockList []Stocks, mailType string) (notifyMail string) {
+func composeMailString(stockList []StockAnalysis.Stocks, mailType string) (notifyMail string) {
 	switch mailType {
 	case "update":
 		notifyMail = "Stock Update\n\n"
@@ -235,7 +195,7 @@ func composeMailString(stockList []Stocks, mailType string) (notifyMail string) 
 	return
 }
 
-func sendMail(configuration Configuration, notifyMail string) {
+func sendMail(configuration StockAnalysis.Configuration, notifyMail string) {
 	// Send email
 	// Set up authentication information.
 	auth := smtp.PlainAuth("", configuration.MailUser, configuration.MailPass, configuration.MailSMTPServer)
@@ -256,7 +216,7 @@ func sendMail(configuration Configuration, notifyMail string) {
 	}
 }
 
-func loadDatabase(configuration *Configuration) (db *sql.DB) {
+func loadDatabase(configuration *StockAnalysis.Configuration) (db *sql.DB) {
 	db, err := sql.Open("mysql", configuration.MySQLUser+":"+configuration.MySQLPass+"@tcp("+configuration.MySQLHost+":"+configuration.MySQLPort+")/"+configuration.MySQLDB)
 	if err != nil {
 		fmt.Println("Could not connect to database")
@@ -274,7 +234,7 @@ func loadDatabase(configuration *Configuration) (db *sql.DB) {
 	return
 }
 
-func saveToDB(db *sql.DB, stockList []Stocks, configuration Configuration) {
+func saveToDB(db *sql.DB, stockList []StockAnalysis.Stocks, configuration StockAnalysis.Configuration) {
 	db, err := sql.Open("mysql", configuration.MySQLUser+":"+configuration.MySQLPass+"@tcp("+configuration.MySQLHost+":"+configuration.MySQLPort+")/"+configuration.MySQLDB)
 	if err != nil {
 		fmt.Println("Could not connect to database")
