@@ -13,9 +13,9 @@ import (
 	"net/http"
 	"net/smtp"
 	"os"
+	"strconv"
+	"strings"
 	"time"
-	//"strings"
-	//"strconv"
 )
 
 type Configuration struct {
@@ -112,7 +112,7 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 
 			sendMail(configuration, notifyMail)
 
-			saveToDB(db, stockList)
+			saveToDB(db, stockList, configuration)
 		}
 	}
 }
@@ -232,70 +232,106 @@ func sendMail(configuration Configuration, notifyMail string) {
 }
 
 func loadDatabase(configuration *Configuration) (db *sql.DB) {
-	db, err := sql.Open("mysql", "user:password@/dbname")
+	db, err := sql.Open("mysql", configuration.MySQLUser+":"+configuration.MySQLPass+"@tcp("+configuration.MySQLHost+":"+configuration.MySQLPort+")/"+configuration.MySQLDB)
+	if err != nil {
+		fmt.Println("Could not connect to database")
+		return
+	}
+	defer db.Close()
+
+	// Test connection with ping
+	err = db.Ping()
+	if err != nil {
+		fmt.Println("Ping error: " + err.Error()) // proper error handling instead of panic in your app
+		return
+	}
+
+	return
+}
+
+func saveToDB(db *sql.DB, stockList []Stocks, configuration Configuration) {
+	db, err := sql.Open("mysql", configuration.MySQLUser+":"+configuration.MySQLPass+"@tcp("+configuration.MySQLHost+":"+configuration.MySQLPort+")/"+configuration.MySQLDB)
 	if err != nil {
 		fmt.Println("Could not connect to database")
 		return
 	}
 
-	initDB(db)
-
-	return
-}
-
-func initDB(db *sql.DB) {
-	createTables := "CREATE TABLE IF NOT EXISTS st_data ("
-	createTables += "symbol varchar(255)"
-	createTables += "exchange varchar(255)"
-	createTables += "name varchar(255)"
-	createTables += "change float"
-	createTables += "close float"
-	createTables += "percentageChange float"
-	createTables += "open float"
-	createTables += "high float"
-	createTables += "low float"
-	createTables += "volume float"
-	createTables += "avgVolume float"
-	createTables += "high52 float"
-	createTables += "low52 float"
-	createTables += "marketCap float"
-	createTables += "eps float"
-	createTables += "shares float"
-	createTables += "time int"
-	createTables += "day int"
-	createTables += "month int"
-	createTables += "year int"
-	createTables += ");"
-
-	_, err := db.Exec(
-		createTables,
-		"",
-		27,
-	)
-
-	if err != nil {
-		fmt.Println("Could not create tables")
-		return
-	}
-
-	return
-}
-
-func saveToDB(db *sql.DB, stockList []Stocks) {
-
 	for i := range stockList {
 		//@TODO Save results to database
 		stock := stockList[i].Stock
-		saveResults := stock.Symbol + ""
 
-		_, err := db.Exec(
-			saveResults,
-			"",
-			27,
-		)
+		// Prepare statement for inserting data
+		insertStatement := "INSERT INTO st_data (`symbol`, `exchange`, `name`, `change`, `close`, `percentageChange`, `open`, `high`, `low`, `volume` , `avgVolume`, `high52` , `low52`, `marketCap`, `eps`, `shares`, `time`, `day`, `month`, `year`) "
+		insertStatement += "VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+		stmtIns, err := db.Prepare(insertStatement)
+		if err != nil {
+			panic(err.Error()) // proper error handling instead of panic in your app
+		}
+		defer stmtIns.Close() // Close the statement when we leave main() / the program terminates
+
+		// Convert variables
+		sqlChange, _ := strconv.ParseFloat(strings.Replace(stock.Change, ",", "", -1), 64)
+		sqlClose, _ := strconv.ParseFloat(strings.Replace(stock.Close, ",", "", -1), 64)
+		sqlPercChange, _ := strconv.ParseFloat(stock.PercentageChange, 64)
+		sqlOpen, _ := strconv.ParseFloat(strings.Replace(stock.Open, ",", "", -1), 64)
+		sqlHigh, _ := strconv.ParseFloat(strings.Replace(stock.High, ",", "", -1), 64)
+		sqlLow, _ := strconv.ParseFloat(strings.Replace(stock.Low, ",", "", -1), 64)
+		sqlHigh52, _ := strconv.ParseFloat(strings.Replace(stock.High52, ",", "", -1), 64)
+		sqlLow52, _ := strconv.ParseFloat(strings.Replace(stock.Low52, ",", "", -1), 64)
+		sqlEps, _ := strconv.ParseFloat(stock.EPS, 64)
+
+		// Some contain letters that need to be converted
+		sqlVolume := convertLetterToDigits(stock.Volume)
+		sqlAvgVolume := convertLetterToDigits(stock.AverageVolume)
+		sqlMarketCap := convertLetterToDigits(stock.MarketCap)
+		sqlShares := convertLetterToDigits(stock.Shares)
+
+		t := time.Now()
+		utc, err := time.LoadLocation(configuration.TimeZone)
+		if err != nil {
+			fmt.Println("err: ", err.Error())
+		}
+		sqlTime := int32(t.Unix())
+		sqlDay := t.In(utc).Day()
+		sqlMonth := t.In(utc).Month()
+		sqlYear := t.In(utc).Year()
+
+		_, err = stmtIns.Exec(stock.Name, stock.Symbol, stock.Exchange, sqlChange, sqlClose,
+			sqlPercChange, sqlOpen, sqlHigh, sqlLow, sqlVolume, sqlAvgVolume,
+			sqlHigh52, sqlLow52, sqlMarketCap, sqlEps, sqlShares,
+			sqlTime, sqlDay, sqlMonth, sqlYear)
 
 		if err != nil {
-			fmt.Println("Could not save results")
+			fmt.Println("Could not save results: " + err.Error())
 		}
 	}
+	defer db.Close()
+}
+
+func convertLetterToDigits(withLetter string) (withoutLetter float64) {
+	// Clear , from string
+	withLetter = strings.Replace(withLetter, ",", "", -1)
+
+	// First get multiplier
+	multiplier := 1.
+	switch {
+	case strings.Contains(withLetter, "M"):
+		multiplier = 1000000.
+		break
+	case strings.Contains(withLetter, "B"):
+		multiplier = 1000000000.
+		break
+	}
+
+	// Remove the letters
+	withLetter = strings.Replace(withLetter, "M", "", -1)
+	withLetter = strings.Replace(withLetter, "B", "", -1)
+
+	// Convert to float
+	withoutLetter, _ = strconv.ParseFloat(withLetter, 64)
+
+	// Add multiplier
+	withoutLetter = withoutLetter * multiplier
+
+	return
 }

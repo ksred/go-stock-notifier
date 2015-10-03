@@ -8,5 +8,10 @@
     "MailSender"        :   "sender@mail.com",
     "Symbols"           :   ["NASDAQ:GOOGL", "NYSE:BLK"] //Format: exhange:stock
     "UpdateInterval"    :   "100", // in seconds
-    "TimeZone"          :   "America/New_York" 
+    "TimeZone"          :   "America/New_York",
+    "MySQLUser"         :   "mysql_user",
+    "MySQLPass"         :   "mysql_password",
+    "MySQLHost"         :   "mysql_ip",
+    "MySQLPort"         :   "mysql_port" 
+    "MySQLDB"           :   "mysql_database" 
 }
