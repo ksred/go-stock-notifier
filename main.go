@@ -74,6 +74,21 @@ func main() {
 	// var urlDetailed string = "https://www.google.com/finance?q=JSE%3AIMP&q=JSE%3ANPN&ei=TrUBVomhAsKcUsP5mZAG&output=json"
 	// URL to get broad financials for multiple stocks
 	var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
+	body := getDataFromURL(urlStocks)
+
+	jsonString := sanitizeBody("google", body)
+
+	stockList := make([]Stocks, 0)
+	stockList = parseJSONData(jsonString)
+
+	//saveToDB(db, stockList, configuration)
+	// Calculate any trends
+	trendingStocks := calculateTrends(configuration, stockList, db)
+	fmt.Println(trendingStocks)
+	//notifyMail := composeMailString(stockList)
+	//sendMail(configuration, notifyMail)
+
+	return
 
 	// We check for updates every minute
 	//duration, _ := time.ParseDuration(configuration.UpdateInterval)
@@ -93,9 +108,10 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 		}
 		hour := t.In(utc).Hour()
 		minute := t.In(utc).Minute()
+		weekday := t.In(utc).Weekday()
 
 		// This must only be run when the markets are open
-		if hour >= 9 && hour < 17 {
+		if weekday != 6 && weekday != 0 && hour >= 9 && hour < 17 {
 			// Save results every 15 minutes
 			if math.Mod(float64(minute), 15.) == 0 {
 				body := getDataFromURL(urlStocks)
@@ -109,12 +125,16 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 				// Mail every X, here is 2 hours
 				switch {
 				//@TODO Make this dynamic from config
-				case hour == 9 && minute == 0:
-				case hour == 11 && minute == 0:
-				case hour == 13 && minute == 0:
-				case hour == 15 && minute == 0:
-				case hour == 17 && minute == 0:
-					notifyMail := composeMailString(stockList)
+				case hour == 9 && minute < 5:
+				case hour == 11 && minute < 5:
+				case hour == 13 && minute < 5:
+				case hour == 15 && minute < 5:
+					notifyMail := composeMailString(stockList, "update")
+					sendMail(configuration, notifyMail)
+				case hour == 17 && minute < 5:
+					// Calculate any trends at end of day
+					trendingStocks := calculateTrends(configuration, stockList, db)
+					notifyMail := composeMailString(trendingStocks, "trend")
 					sendMail(configuration, notifyMail)
 				}
 			}
@@ -195,7 +215,16 @@ func parseJSONData(jsonString []byte) (stockList []Stocks) {
 	return
 }
 
-func composeMailString(stockList []Stocks) (notifyMail string) {
+func composeMailString(stockList []Stocks, mailType string) (notifyMail string) {
+	switch mailType {
+	case "update":
+		notifyMail = "Stock Update\n\n"
+		break
+	case "trend":
+		notifyMail = "TRENDING STOCKS\n\n"
+		break
+	}
+
 	for i := range stockList {
 		stock := stockList[i].Stock
 		notifyMail += fmt.Sprintf("=====================================\n")
@@ -303,7 +332,7 @@ func saveToDB(db *sql.DB, stockList []Stocks, configuration Configuration) {
 		sqlMonth := t.In(utc).Month()
 		sqlYear := t.In(utc).Year()
 
-		_, err = stmtIns.Exec(stock.Name, stock.Symbol, stock.Exchange, sqlChange, sqlClose,
+		_, err = stmtIns.Exec(stock.Symbol, stock.Exchange, stock.Name, sqlChange, sqlClose,
 			sqlPercChange, sqlOpen, sqlHigh, sqlLow, sqlVolume, sqlAvgVolume,
 			sqlHigh52, sqlLow52, sqlMarketCap, sqlEps, sqlShares,
 			sqlTime, sqlMinute, sqlHour, sqlDay, sqlMonth, sqlYear)
@@ -341,4 +370,75 @@ func convertLetterToDigits(withLetter string) (withoutLetter float64) {
 	withoutLetter = withoutLetter * multiplier
 
 	return
+}
+
+func calculateTrends(configuration Configuration, stockList []Stocks, db *sql.DB) (trendingStocks []Stocks) {
+	db, err := sql.Open("mysql", configuration.MySQLUser+":"+configuration.MySQLPass+"@tcp("+configuration.MySQLHost+":"+configuration.MySQLPort+")/"+configuration.MySQLDB)
+	if err != nil {
+		fmt.Println("Could not connect to database")
+		return
+	}
+
+	trendingStocks = make([]Stocks, 0)
+	for i := range stockList {
+		//@TODO Save results to database
+		stock := stockList[i].Stock
+
+		// Prepare statement for inserting data
+		//var stockReturn StockSingle
+		//rows, err := db.Query("SELECT `close`, `volume` FROM `st_data` WHERE `symbol` = ? GROUP BY `day` LIMIT 3", stock.Symbol)
+		rows, err := db.Query("SELECT `close`, `volume` FROM `st_data` WHERE `symbol` = ? LIMIT 3", stock.Symbol)
+		if err != nil {
+			fmt.Println("Error with select query: " + err.Error())
+		}
+		defer rows.Close()
+		allCloses := make([]float64, 0)
+		allVolumes := make([]float64, 0)
+		for rows.Next() {
+			var stockClose float64
+			var stockVolume float64
+			if err := rows.Scan(&stockClose, &stockVolume); err != nil {
+				log.Fatal(err)
+			}
+			allCloses = append(allCloses, stockClose)
+			allVolumes = append(allVolumes, stockVolume)
+		}
+		if err := rows.Err(); err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println(allCloses)
+
+		stocks := Stocks{}
+
+		if doTrendCalculation(allCloses, allVolumes, "up") {
+			stocks.Stock = stock
+			trendingStocks = append(trendingStocks, stocks)
+		} else if doTrendCalculation(allCloses, allVolumes, "down") {
+			stocks.Stock = stock
+			trendingStocks = append(trendingStocks, stocks)
+		}
+
+	}
+	defer db.Close()
+
+	return
+}
+
+func doTrendCalculation(closes []float64, volumes []float64, trendType string) (trending bool) {
+	//@TODO This trend calculation is very simple and will be expanded
+	switch trendType {
+	case "up":
+		if closes[3] > closes[2] && closes[2] > closes[1] && volumes[3] > volumes[1] {
+			return true
+		}
+		break
+	case "down":
+		if closes[3] < closes[2] && closes[2] < closes[1] && volumes[3] < volumes[1] {
+			return true
+		}
+		break
+	}
+
+	return false
 }
