@@ -261,8 +261,8 @@ func saveToDB(db *sql.DB, stockList []Stocks, configuration Configuration) {
 		stock := stockList[i].Stock
 
 		// Prepare statement for inserting data
-		insertStatement := "INSERT INTO st_data (`symbol`, `exchange`, `name`, `change`, `close`, `percentageChange`, `open`, `high`, `low`, `volume` , `avgVolume`, `high52` , `low52`, `marketCap`, `eps`, `shares`, `time`, `day`, `month`, `year`) "
-		insertStatement += "VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+		insertStatement := "INSERT INTO st_data (`symbol`, `exchange`, `name`, `change`, `close`, `percentageChange`, `open`, `high`, `low`, `volume` , `avgVolume`, `high52` , `low52`, `marketCap`, `eps`, `shares`, `time`, `minute`, `hour`, `day`, `month`, `year`) "
+		insertStatement += "VALUES( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 		stmtIns, err := db.Prepare(insertStatement)
 		if err != nil {
 			panic(err.Error()) // proper error handling instead of panic in your app
@@ -292,6 +292,8 @@ func saveToDB(db *sql.DB, stockList []Stocks, configuration Configuration) {
 			fmt.Println("err: ", err.Error())
 		}
 		sqlTime := int32(t.Unix())
+		sqlMinute := t.In(utc).Minute()
+		sqlHour := t.In(utc).Hour()
 		sqlDay := t.In(utc).Day()
 		sqlMonth := t.In(utc).Month()
 		sqlYear := t.In(utc).Year()
@@ -299,7 +301,7 @@ func saveToDB(db *sql.DB, stockList []Stocks, configuration Configuration) {
 		_, err = stmtIns.Exec(stock.Name, stock.Symbol, stock.Exchange, sqlChange, sqlClose,
 			sqlPercChange, sqlOpen, sqlHigh, sqlLow, sqlVolume, sqlAvgVolume,
 			sqlHigh52, sqlLow52, sqlMarketCap, sqlEps, sqlShares,
-			sqlTime, sqlDay, sqlMonth, sqlYear)
+			sqlTime, sqlMinute, sqlHour, sqlDay, sqlMonth, sqlYear)
 
 		if err != nil {
 			fmt.Println("Could not save results: " + err.Error())

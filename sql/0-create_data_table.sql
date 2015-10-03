@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS st_data (
 `eps` float, 
 `shares` float, 
 `time` int, 
+`minute` int, 
+`hour` int, 
 `day` int, 
 `month` int, 
 `year` int,
