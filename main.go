@@ -8,7 +8,6 @@ import (
 	"fmt"
 	//@TODO Move into separate packge
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/ksred/go-stock-analysis"
 	"io/ioutil"
 	"log"
 	"math"
@@ -22,7 +21,7 @@ import (
 
 func main() {
 
-	configuration := StockAnalysis.Configuration{}
+	configuration := Configuration{}
 	loadConfig(&configuration)
 
 	//@TODO Move this into a function/package
@@ -43,7 +42,7 @@ func main() {
 	select {} // this will cause the program to run forever
 }
 
-func updateAtInterval(n time.Duration, urlStocks string, configuration StockAnalysis.Configuration, db *sql.DB) {
+func updateAtInterval(n time.Duration, urlStocks string, configuration Configuration, db *sql.DB) {
 
 	for _ = range time.Tick(n * time.Second) {
 		t := time.Now()
@@ -66,7 +65,7 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration StockAnal
 
 				jsonString := sanitizeBody("google", body)
 
-				stockList := make([]StockAnalysis.Stocks, 0)
+				stockList := make([]Stocks, 0)
 				stockList = parseJSONData(jsonString)
 
 				saveToDB(db, stockList, configuration)
@@ -83,7 +82,7 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration StockAnal
 				case hour == 17 && minute < 5:
 					fmt.Println("\t\tAt close\n")
 					// Calculate any trends at end of day
-					trendingStocks := StockAnalysis.CalculateTrends(configuration, stockList, db)
+					trendingStocks := CalculateTrends(configuration, stockList, db)
 					notifyMail := composeMailString(trendingStocks, "trend")
 					sendMail(configuration, notifyMail)
 				}
@@ -93,7 +92,7 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration StockAnal
 	}
 }
 
-func loadConfig(configuration *StockAnalysis.Configuration) {
+func loadConfig(configuration *Configuration) {
 	// Get config
 	file, _ := os.Open("config.json")
 	decoder := json.NewDecoder(file)
@@ -144,16 +143,16 @@ func getDataFromURL(urlStocks string) (body []byte) {
 	return
 }
 
-func parseJSONData(jsonString []byte) (stockList []StockAnalysis.Stocks) {
+func parseJSONData(jsonString []byte) (stockList []Stocks) {
 	raw := make([]json.RawMessage, 10)
 	if err := json.Unmarshal(jsonString, &raw); err != nil {
 		log.Fatalf("error %v", err)
 	}
 
 	for i := 0; i < len(raw); i += 1 {
-		stocks := StockAnalysis.Stocks{}
+		stocks := Stocks{}
 
-		stock := StockAnalysis.StockSingle{}
+		stock := StockSingle{}
 		if err := json.Unmarshal(raw[i], &stock); err != nil {
 			fmt.Println("error %v", err)
 		} else {
@@ -166,7 +165,7 @@ func parseJSONData(jsonString []byte) (stockList []StockAnalysis.Stocks) {
 	return
 }
 
-func composeMailString(stockList []StockAnalysis.Stocks, mailType string) (notifyMail string) {
+func composeMailString(stockList []Stocks, mailType string) (notifyMail string) {
 	switch mailType {
 	case "update":
 		notifyMail = "Stock Update\n\n"
@@ -195,7 +194,7 @@ func composeMailString(stockList []StockAnalysis.Stocks, mailType string) (notif
 	return
 }
 
-func sendMail(configuration StockAnalysis.Configuration, notifyMail string) {
+func sendMail(configuration Configuration, notifyMail string) {
 	// Send email
 	// Set up authentication information.
 	auth := smtp.PlainAuth("", configuration.MailUser, configuration.MailPass, configuration.MailSMTPServer)
@@ -216,7 +215,7 @@ func sendMail(configuration StockAnalysis.Configuration, notifyMail string) {
 	}
 }
 
-func loadDatabase(configuration *StockAnalysis.Configuration) (db *sql.DB) {
+func loadDatabase(configuration *Configuration) (db *sql.DB) {
 	db, err := sql.Open("mysql", configuration.MySQLUser+":"+configuration.MySQLPass+"@tcp("+configuration.MySQLHost+":"+configuration.MySQLPort+")/"+configuration.MySQLDB)
 	if err != nil {
 		fmt.Println("Could not connect to database")
@@ -234,7 +233,7 @@ func loadDatabase(configuration *StockAnalysis.Configuration) (db *sql.DB) {
 	return
 }
 
-func saveToDB(db *sql.DB, stockList []StockAnalysis.Stocks, configuration StockAnalysis.Configuration) {
+func saveToDB(db *sql.DB, stockList []Stocks, configuration Configuration) {
 	db, err := sql.Open("mysql", configuration.MySQLUser+":"+configuration.MySQLPass+"@tcp("+configuration.MySQLHost+":"+configuration.MySQLPort+")/"+configuration.MySQLDB)
 	if err != nil {
 		fmt.Println("Could not connect to database")
