@@ -86,7 +86,7 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 
 	for _ = range time.Tick(n * time.Second) {
 		t := time.Now()
-		fmt.Println("Location:", t.Location(), ":Time:", t)
+		fmt.Println("BEGIN. Location:", t.Location(), ":Time:", t, "\n")
 		utc, err := time.LoadLocation(configuration.TimeZone)
 		if err != nil {
 			fmt.Println("err: ", err.Error())
@@ -97,8 +97,10 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 
 		// This must only be run when the markets are open
 		if weekday != 6 && weekday != 0 && hour >= 9 && hour < 17 {
+			fmt.Println("\tFalls within operating hours\n")
 			// Save results every 15 minutes
 			if math.Mod(float64(minute), 15.) == 0 {
+				fmt.Println("\tFalls within 15 minute interval\n")
 				body := getDataFromURL(urlStocks)
 
 				jsonString := sanitizeBody("google", body)
@@ -114,9 +116,11 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 				case hour == 11 && minute < 5:
 				case hour == 13 && minute < 5:
 				case hour == 15 && minute < 5:
+					fmt.Println("\t\tOn chosen hours\n")
 					notifyMail := composeMailString(stockList, "update")
 					sendMail(configuration, notifyMail)
 				case hour == 17 && minute < 5:
+					fmt.Println("\t\tAt close\n")
 					// Calculate any trends at end of day
 					trendingStocks := calculateTrends(configuration, stockList, db)
 					notifyMail := composeMailString(trendingStocks, "trend")
@@ -124,6 +128,7 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 				}
 			}
 		}
+		fmt.Println("END. Location:", t.Location(), ":Time:", t, "\n")
 	}
 }
 
@@ -364,6 +369,7 @@ func calculateTrends(configuration Configuration, stockList []Stocks, db *sql.DB
 		return
 	}
 
+	fmt.Println("\t\t\tChecking for trends")
 	trendingStocks = make([]Stocks, 0)
 	for i := range stockList {
 		//@TODO Save results to database
@@ -395,15 +401,15 @@ func calculateTrends(configuration Configuration, stockList []Stocks, db *sql.DB
 			log.Fatal(err)
 		}
 
-		fmt.Println(allCloses)
-
 		stocks := Stocks{}
 
 		if count == 3 {
 			if doTrendCalculation(allCloses, allVolumes, "up") {
+				fmt.Printf("\t\t\tTrend UP for %s\n", stock.Symbol)
 				stocks.Stock = stock
 				trendingStocks = append(trendingStocks, stocks)
 			} else if doTrendCalculation(allCloses, allVolumes, "down") {
+				fmt.Printf("\t\t\tTrend DOWN for %s\n", stock.Symbol)
 				stocks.Stock = stock
 				trendingStocks = append(trendingStocks, stocks)
 			}
@@ -417,14 +423,15 @@ func calculateTrends(configuration Configuration, stockList []Stocks, db *sql.DB
 
 func doTrendCalculation(closes []float64, volumes []float64, trendType string) (trending bool) {
 	//@TODO This trend calculation is very simple and will be expanded
+	fmt.Printf("\t\t\t\tChecking trends with data: price: %f, %f, %f and volume: %f, %f, %f\n", closes[0], closes[1], closes[3], volumes[0], volumes[1], volumes[2])
 	switch trendType {
 	case "up":
-		if closes[3] > closes[2] && closes[2] > closes[1] && volumes[3] > volumes[1] {
+		if closes[2] > closes[1] && closes[0] > closes[0] && volumes[2] > volumes[0] {
 			return true
 		}
 		break
 	case "down":
-		if closes[3] < closes[2] && closes[2] < closes[1] && volumes[3] < volumes[1] {
+		if closes[2] < closes[1] && closes[1] < closes[0] && volumes[2] < volumes[0] {
 			return true
 		}
 		break
