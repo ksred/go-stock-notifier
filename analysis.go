@@ -8,24 +8,6 @@ import (
 	"log"
 )
 
-//@TODO Configuration should be in main package
-type Configuration struct {
-	MailUser       string
-	MailPass       string
-	MailSMTPServer string
-	MailSMTPPort   string
-	MailRecipient  string
-	MailSender     string
-	Symbols        []string
-	UpdateInterval string
-	TimeZone       string
-	MySQLUser      string
-	MySQLPass      string
-	MySQLHost      string
-	MySQLPort      string
-	MySQLDB        string
-}
-
 type StockSingle struct {
 	Symbol           string `json:"t"`
 	Exchange         string `json:"e"`
