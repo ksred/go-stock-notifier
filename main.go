@@ -8,6 +8,7 @@ import (
 	"fmt"
 	//@TODO Move into separate packge
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/ksred/stock-analysis"
 	"io/ioutil"
 	"log"
 	"math"
@@ -122,7 +123,7 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 				case hour == 17 && minute < 5:
 					fmt.Println("\t\tAt close\n")
 					// Calculate any trends at end of day
-					trendingStocks := calculateTrends(configuration, stockList, db)
+					trendingStocks := stockAnalysis.calculateTrends(configuration, stockList, db)
 					notifyMail := composeMailString(trendingStocks, "trend")
 					sendMail(configuration, notifyMail)
 				}
@@ -360,82 +361,4 @@ func convertLetterToDigits(withLetter string) (withoutLetter float64) {
 	withoutLetter = withoutLetter * multiplier
 
 	return
-}
-
-func calculateTrends(configuration Configuration, stockList []Stocks, db *sql.DB) (trendingStocks []Stocks) {
-	db, err := sql.Open("mysql", configuration.MySQLUser+":"+configuration.MySQLPass+"@tcp("+configuration.MySQLHost+":"+configuration.MySQLPort+")/"+configuration.MySQLDB)
-	if err != nil {
-		fmt.Println("Could not connect to database")
-		return
-	}
-
-	fmt.Println("\t\t\tChecking for trends")
-	trendingStocks = make([]Stocks, 0)
-	for i := range stockList {
-		//@TODO Save results to database
-		stock := stockList[i].Stock
-
-		// Prepare statement for inserting data
-		//var stockReturn StockSingle
-		//rows, err := db.Query("SELECT `close`, `volume` FROM `st_data` WHERE `symbol` = ? GROUP BY `day` LIMIT 3", stock.Symbol)
-		rows, err := db.Query("SELECT `close`, `volume` FROM `st_data` WHERE `symbol` = ? LIMIT 3", stock.Symbol)
-		if err != nil {
-			fmt.Println("Error with select query: " + err.Error())
-		}
-		defer rows.Close()
-
-		allCloses := make([]float64, 0)
-		allVolumes := make([]float64, 0)
-		count := 0
-		for rows.Next() {
-			var stockClose float64
-			var stockVolume float64
-			if err := rows.Scan(&stockClose, &stockVolume); err != nil {
-				log.Fatal(err)
-			}
-			allCloses = append(allCloses, stockClose)
-			allVolumes = append(allVolumes, stockVolume)
-			count++
-		}
-		if err := rows.Err(); err != nil {
-			log.Fatal(err)
-		}
-
-		stocks := Stocks{}
-
-		if count == 3 {
-			if doTrendCalculation(allCloses, allVolumes, "up") {
-				fmt.Printf("\t\t\tTrend UP for %s\n", stock.Symbol)
-				stocks.Stock = stock
-				trendingStocks = append(trendingStocks, stocks)
-			} else if doTrendCalculation(allCloses, allVolumes, "down") {
-				fmt.Printf("\t\t\tTrend DOWN for %s\n", stock.Symbol)
-				stocks.Stock = stock
-				trendingStocks = append(trendingStocks, stocks)
-			}
-		}
-
-	}
-	defer db.Close()
-
-	return
-}
-
-func doTrendCalculation(closes []float64, volumes []float64, trendType string) (trending bool) {
-	//@TODO This trend calculation is very simple and will be expanded
-	fmt.Printf("\t\t\t\tChecking trends with data: price: %f, %f, %f and volume: %f, %f, %f\n", closes[0], closes[1], closes[3], volumes[0], volumes[1], volumes[2])
-	switch trendType {
-	case "up":
-		if closes[2] > closes[1] && closes[0] > closes[0] && volumes[2] > volumes[0] {
-			return true
-		}
-		break
-	case "down":
-		if closes[2] < closes[1] && closes[1] < closes[0] && volumes[2] < volumes[0] {
-			return true
-		}
-		break
-	}
-
-	return false
 }
