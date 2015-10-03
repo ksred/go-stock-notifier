@@ -74,21 +74,6 @@ func main() {
 	// var urlDetailed string = "https://www.google.com/finance?q=JSE%3AIMP&q=JSE%3ANPN&ei=TrUBVomhAsKcUsP5mZAG&output=json"
 	// URL to get broad financials for multiple stocks
 	var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
-	body := getDataFromURL(urlStocks)
-
-	jsonString := sanitizeBody("google", body)
-
-	stockList := make([]Stocks, 0)
-	stockList = parseJSONData(jsonString)
-
-	//saveToDB(db, stockList, configuration)
-	// Calculate any trends
-	trendingStocks := calculateTrends(configuration, stockList, db)
-	fmt.Println(trendingStocks)
-	//notifyMail := composeMailString(stockList)
-	//sendMail(configuration, notifyMail)
-
-	return
 
 	// We check for updates every minute
 	//duration, _ := time.ParseDuration(configuration.UpdateInterval)
@@ -392,8 +377,10 @@ func calculateTrends(configuration Configuration, stockList []Stocks, db *sql.DB
 			fmt.Println("Error with select query: " + err.Error())
 		}
 		defer rows.Close()
+
 		allCloses := make([]float64, 0)
 		allVolumes := make([]float64, 0)
+		count := 0
 		for rows.Next() {
 			var stockClose float64
 			var stockVolume float64
@@ -402,6 +389,7 @@ func calculateTrends(configuration Configuration, stockList []Stocks, db *sql.DB
 			}
 			allCloses = append(allCloses, stockClose)
 			allVolumes = append(allVolumes, stockVolume)
+			count++
 		}
 		if err := rows.Err(); err != nil {
 			log.Fatal(err)
@@ -411,12 +399,14 @@ func calculateTrends(configuration Configuration, stockList []Stocks, db *sql.DB
 
 		stocks := Stocks{}
 
-		if doTrendCalculation(allCloses, allVolumes, "up") {
-			stocks.Stock = stock
-			trendingStocks = append(trendingStocks, stocks)
-		} else if doTrendCalculation(allCloses, allVolumes, "down") {
-			stocks.Stock = stock
-			trendingStocks = append(trendingStocks, stocks)
+		if count == 3 {
+			if doTrendCalculation(allCloses, allVolumes, "up") {
+				stocks.Stock = stock
+				trendingStocks = append(trendingStocks, stocks)
+			} else if doTrendCalculation(allCloses, allVolumes, "down") {
+				stocks.Stock = stock
+				trendingStocks = append(trendingStocks, stocks)
+			}
 		}
 
 	}
