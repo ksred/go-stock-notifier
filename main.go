@@ -10,6 +10,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"net/smtp"
 	"os"
@@ -94,25 +95,29 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 		minute := t.In(utc).Minute()
 
 		// This must only be run when the markets are open
-		switch {
-		//@TODO Make this dynamic from config
-		case hour == 9 && minute == 00:
-		case hour == 11 && minute == 00:
-		case hour == 13 && minute == 00:
-		case hour == 15 && minute == 00:
-		case hour == 17 && minute == 00:
-			body := getDataFromURL(urlStocks)
+		if hour >= 9 && hour < 17 {
+			// Save results every 15 minutes
+			if math.Mod(float64(minute), 15.) == 0 {
+				body := getDataFromURL(urlStocks)
 
-			jsonString := sanitizeBody("google", body)
+				jsonString := sanitizeBody("google", body)
 
-			stockList := make([]Stocks, 0)
-			stockList = parseJSONData(jsonString)
+				stockList := make([]Stocks, 0)
+				stockList = parseJSONData(jsonString)
 
-			notifyMail := composeMailString(stockList)
-
-			sendMail(configuration, notifyMail)
-
-			saveToDB(db, stockList, configuration)
+				saveToDB(db, stockList, configuration)
+				// Mail every X, here is 2 hours
+				switch {
+				//@TODO Make this dynamic from config
+				case hour == 9 && minute == 0:
+				case hour == 11 && minute == 0:
+				case hour == 13 && minute == 0:
+				case hour == 15 && minute == 0:
+				case hour == 17 && minute == 0:
+					notifyMail := composeMailString(stockList)
+					sendMail(configuration, notifyMail)
+				}
+			}
 		}
 	}
 }
