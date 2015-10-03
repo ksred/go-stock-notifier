@@ -91,7 +91,11 @@ func CalculateTrends(configuration Configuration, stockList []Stocks, db *sql.DB
 }
 
 func doTrendCalculation(closes []float64, volumes []float64, trendType string) (trending bool) {
-	//@TODO This trend calculation is very simple and will be expanded
+	/*@TODO
+	  Currently a simple analysis is done on daily stock data. This analysis is to identify trending stocks, with a trend being identified by:
+	  - A price increase (or decrease) each day for three days
+	  - A volume increase (or decrease) over two of the three days
+	*/
 	fmt.Printf("\t\t\t\tChecking trends with data: price: %f, %f, %f and volume: %f, %f, %f\n", closes[0], closes[1], closes[3], volumes[0], volumes[1], volumes[2])
 	switch trendType {
 	case "up":
