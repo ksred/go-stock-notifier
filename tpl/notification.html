@@ -1,0 +1,89 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Go Stock Notifier</title>
+</head>
+
+<body bgcolor="#8d8e90">
+<table width="100%" border="0" cellspacing="0" cellpadding="0" bgcolor="#8d8e90">
+  <tr>
+    <td><table width="600" border="0" cellspacing="0" cellpadding="0" bgcolor="#FFFFFF" align="center">
+        <tr>
+          <td><table width="100%" border="0" cellspacing="0" cellpadding="0">
+              <tr>
+                <td width="10%">&nbsp;</td>
+                <td width="80%" align="left" valign="top"><font style="font-family: Georgia, 'Times New Roman', Times, serif; color:#010101; font-size:24px"><br /><strong>{{ .Title }}</strong></font><br /><br />
+                {{ with .Stocks }}
+                    {{ range . }}
+                    <table with="100%" border="1px solid #ccc">
+                        <tr width="100%" style="border: 1px solid #ccc">
+                            <td><strong>Name</strong></td><td>{{ .Name }}</td>
+                            <td></td><td></td>
+                        </tr>
+                        <tr width="100%" style="border: 1px solid #ccc">
+                            <td><strong>Symbol</strong></td><td>{{ .Symbol }} : {{ .Exchange }}</td>
+                            <td></td><td></td>
+                        </tr>
+                        <tr width="100%" style="border: 1px solid #ccc">
+                            <td><strong>Change</strong></td>
+                            <td>{{ .Change }}        {{ .PercentageChange }}%</td>
+                            <td></td><td></td>
+                        </tr>
+                        <tr width="100%" style="border: 1px solid #ccc">
+                            <td><strong>Open</strong></td><td>{{ .Open }}</td>
+                            <td><strong>Close</strong></td><td>{{ .Close }}</td>
+                        </tr>
+                        <tr width="100%" style="border: 1px solid #ccc">
+                            <td><strong>High</strong></td><td>{{ .High }}</td>
+                            <td><strong>Low</strong></td><td>{{ .Low }}</td>
+                        </tr>
+                        <tr width="100%" style="border: 1px solid #ccc">
+                            <td><strong>Volume</strong></td><td>{{ .Volume }}</td>
+                            <td><strong>Average Volume</strong></td><td>{{ .AverageVolume }}</td>
+                        </tr>
+                        <tr width="100%" style="border: 1px solid #ccc">
+                            <td><strong>High 52</strong></td><td>{{ .High52 }}</td>
+                            <td><strong>Low 52</strong></td><td>{{ .Low52 }}</td>
+                        </tr>
+                        <tr width="100%" style="border: 1px solid #ccc">
+                            <td><strong>Market Cap</strong></td><td>{{ .MarketCap }}</td>
+                            <td><strong>EPS</strong></td><td>{{ .EPS }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Shares</strong></td><td>{{ .Shares }}</td>
+                            <td></td><td></td>
+                        </tr>
+                    </table>
+                    <br /><br />
+                    {{ end }}
+                {{ end }}
+                <font style="font-family: Verdana, Geneva, sans-serif; color:#666766; font-size:13px; line-height:21px"></font>
+                </td>
+                <td width="10%">&nbsp;</td>
+              </tr>
+              <tr>
+                <td>&nbsp;</td>
+                <td align="right" valign="top"><table width="108" border="0" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td><img src="images/PROMO-GREEN2_04_01.jpg" width="108" height="9" style="display:block" border="0" alt=""/></td>
+                  </tr>
+                  <tr>
+                    <td align="center" valign="middle" bgcolor="#666766"><font style="font-family: Georgia, 'Times New Roman', Times, serif; color:#ffffff; font-size:14px"><em><a href="http://yourlink" target="_blank" style="color:#ffffff; text-decoration: underline">click here</a></em></font></td>
+                  </tr>
+                  <tr>
+                    <td align="center" valign="middle" bgcolor="#666766"><font style="font-family: Georgia, 'Times New Roman', Times, serif; color:#ffffff; font-size:15px"><strong><a href="http://yourlink" target="_blank" style="color:#ffffff; text-decoration:none"><em>LOREM</em></a></strong></font></td>
+                  </tr>
+                  <tr>
+                    <td height="10" align="center" valign="middle" bgcolor="#666766"> </td>
+                  </tr>
+                </table></td>
+                <td>&nbsp;</td>
+              </tr>
+            </table></td>
+        </tr>
+      </table></td>
+  </tr>
+</table>
+</body>
+</html>
