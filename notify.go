@@ -8,6 +8,11 @@ import (
 	"net/smtp"
 )
 
+type MailTemplate struct {
+	Title  string
+	Stocks []StockSingle
+}
+
 func composeMailTemplate(stockList []Stocks, mailType string) (notifyMail string) {
 	// https://jan.newmarch.name/go/template/chapter-template.html
 	var templateString bytes.Buffer
@@ -18,26 +23,32 @@ func composeMailTemplate(stockList []Stocks, mailType string) (notifyMail string
 		allStocks = append(allStocks, stock)
 	}
 
+	mailTpl := MailTemplate{
+		Stocks: allStocks,
+	}
+
 	switch mailType {
 	case "update":
-		t, err := template.ParseFiles("notification.html")
+		mailTpl.Title = "Stock update"
+		t, err := template.ParseFiles("tpl/notification.html")
 		if err != nil {
 			fmt.Println("template parse error: ", err)
 			return
 		}
-		err = t.Execute(&templateString, allStocks)
+		err = t.Execute(&templateString, mailTpl)
 		if err != nil {
 			fmt.Println("template executing error: ", err)
 			return
 		}
 		break
 	case "trend":
-		t, err := template.ParseFiles("notification.html")
+		mailTpl.Title = "Trends update"
+		t, err := template.ParseFiles("tpl/notification.html")
 		if err != nil {
 			fmt.Println("template parse error: ", err)
 			return
 		}
-		err = t.Execute(&templateString, allStocks)
+		err = t.Execute(&templateString, mailTpl)
 		if err != nil {
 			fmt.Println("template executing error: ", err)
 			return
@@ -46,24 +57,6 @@ func composeMailTemplate(stockList []Stocks, mailType string) (notifyMail string
 	}
 
 	notifyMail = templateString.String()
-	fmt.Println(notifyMail)
-	/*
-		for i := range stockList {
-			stock := stockList[i].Stock
-			notifyMail += fmt.Sprintf("=====================================\n")
-			notifyMail += fmt.Sprintf("%s\n", stock.Name)
-			notifyMail += fmt.Sprintf("%s: %s\n", stock.Symbol, stock.Exchange)
-			notifyMail += fmt.Sprintf("Change: %s : %s%%\n", stock.Change, stock.PercentageChange)
-			notifyMail += fmt.Sprintf("Open:   %s, Close:   %s\n", stock.Open, stock.Close)
-			notifyMail += fmt.Sprintf("High:   %s, Low:     %s\n", stock.High, stock.Low)
-			notifyMail += fmt.Sprintf("Volume: %s, Average Volume:     %s\n", stock.Volume, stock.AverageVolume)
-			notifyMail += fmt.Sprintf("High 52: %s, Low 52:     %s\n", stock.High52, stock.Low52)
-			notifyMail += fmt.Sprintf("Market Cap: %s\n", stock.MarketCap)
-			notifyMail += fmt.Sprintf("EPS: %s\n", stock.EPS)
-			notifyMail += fmt.Sprintf("Shares: %s\n", stock.Shares)
-			notifyMail += fmt.Sprintf("=====================================\n")
-		}
-	*/
 
 	return
 }
@@ -104,9 +97,11 @@ func sendMail(configuration Configuration, notifyMail string) {
 
 	// Connect to the server, authenticate, set the sender and recipient,
 	// and send the email all in one step.
+	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
 	to := []string{configuration.MailRecipient}
 	msg := []byte("To: " + configuration.MailRecipient + "\r\n" +
 		"Subject: Quote update!\r\n" +
+		mime + "\r\n" +
 		"\r\n" +
 		notifyMail +
 		"\r\n")

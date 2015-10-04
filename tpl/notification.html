@@ -12,44 +12,53 @@
         <tr>
           <td><table width="100%" border="0" cellspacing="0" cellpadding="0">
               <tr>
-                <td width="61"><a href= "http://yourlink" target="_blank"><img src="images/PROMO-GREEN2_01_01.jpg" width="61" height="76" border="0" alt=""/></a></td>
-                <td width="144"><a href= "http://yourlink" target="_blank"><img src="images/PROMO-GREEN2_01_02.jpg" width="144" height="76" border="0" alt=""/></a></td>
-                <td width="393"><table width="100%" border="0" cellspacing="0" cellpadding="0">
-                    <tr>
-                      <td height="46" align="right" valign="middle"><table width="100%" border="0" cellspacing="0" cellpadding="0">
-                          <tr>
-                            <td width="67%" align="right"><font style="font-family:'Myriad Pro', Helvetica, Arial, sans-serif; color:#68696a; font-size:8px; text-transform:uppercase"><a href= "http://yourlink" style="color:#68696a; text-decoration:none"><strong>SEND TO A FRIEND</strong></a></font></td>
-                            <td width="29%" align="right"><font style="font-family:'Myriad Pro', Helvetica, Arial, sans-serif; color:#68696a; font-size:8px"><a href= "http://yourlink" style="color:#68696a; text-decoration:none; text-transform:uppercase"><strong>VIEW AS A WEB PAGE</strong></a></font></td>
-                            <td width="4%">&nbsp;</td>
-                          </tr>
-                        </table></td>
-                    </tr>
-                    <tr>
-                      <td height="30"><img src="images/PROMO-GREEN2_01_04.jpg" width="393" height="30" border="0" alt=""/></td>
-                    </tr>
-                  </table></td>
-              </tr>
-            </table></td>
-        </tr>
-        <tr>
-          <td align="center">&nbsp;</td>
-        </tr>
-        <tr>
-          <td>&nbsp;</td>
-        </tr>
-        <tr>
-          <td><table width="100%" border="0" cellspacing="0" cellpadding="0">
-              <tr>
                 <td width="10%">&nbsp;</td>
                 <td width="80%" align="left" valign="top"><font style="font-family: Georgia, 'Times New Roman', Times, serif; color:#010101; font-size:24px"><strong>{{ .Title }}</strong></font><br /><br />
-                {{ with .Stock }}
+                {{ with .Stocks }}
                     {{ range . }}
-                        <tr width="100%">
-                            <td><strong>Symbol</strong></td><td>{{ .Symbol }}</td>
+                    <table with="100%" border="1px solid #ccc">
+                        <tr width="100%" style="border: 1px solid #ccc">
+                            <td><strong>Name</strong></td><td>{{ .Name }}</td>
+                            <td></td><td></td>
                         </tr>
+                        <tr width="100%" style="border: 1px solid #ccc">
+                            <td><strong>Symbol</strong></td><td>{{ .Symbol }} : {{ .Exchange }}</td>
+                            <td></td><td></td>
+                        </tr>
+                        <tr width="100%" style="border: 1px solid #ccc">
+                            <td><strong>Change</strong></td>
+                            <td>{{ .Change }} - {{ .PercentageChange }}%</td>
+                            <td></td><td></td>
+                        </tr>
+                        <tr width="100%" style="border: 1px solid #ccc">
+                            <td><strong>Open</strong></td><td>{{ .Open }}</td>
+                            <td><strong>Close</strong></td><td>{{ .Close }}</td>
+                        </tr>
+                        <tr width="100%" style="border: 1px solid #ccc">
+                            <td><strong>High</strong></td><td>{{ .High }}</td>
+                            <td><strong>Low</strong></td><td>{{ .Low }}</td>
+                        </tr>
+                        <tr width="100%" style="border: 1px solid #ccc">
+                            <td><strong>Volume</strong></td><td>{{ .Volume }}</td>
+                            <td><strong>Average Volume</strong></td><td>{{ .AverageVolume }}</td>
+                        </tr>
+                        <tr width="100%" style="border: 1px solid #ccc">
+                            <td><strong>High 52</strong></td><td>{{ .High52 }}</td>
+                            <td><strong>Low 52</strong></td><td>{{ .Low52 }}</td>
+                        </tr>
+                        <tr width="100%" style="border: 1px solid #ccc">
+                            <td><strong>Market Cap</strong></td><td>{{ .MarketCap }}</td>
+                            <td><strong>EPS</strong></td><td>{{ .EPS }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Shares</strong></td><td>{{ .Shares }}</td>
+                            <td></td><td></td>
+                        </tr>
+                    </table>
+                    <br /><br />
                     {{ end }}
                 {{ end }}
-                  <font style="font-family: Verdana, Geneva, sans-serif; color:#666766; font-size:13px; line-height:21px"></font>
+                <font style="font-family: Verdana, Geneva, sans-serif; color:#666766; font-size:13px; line-height:21px"></font>
                 </td>
                 <td width="10%">&nbsp;</td>
               </tr>
