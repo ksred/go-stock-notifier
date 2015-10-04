@@ -45,19 +45,6 @@ func main() {
 	// URL to get broad financials for multiple stocks
 	var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
 
-	fmt.Println("\tFalls within 15 minute interval")
-	body := getDataFromURL(urlStocks)
-
-	jsonString := sanitizeBody("google", body)
-
-	stockList := make([]Stocks, 0)
-	stockList = parseJSONData(jsonString)
-
-	notifyMail := composeMailTemplate(stockList, "trend")
-	sendMail(configuration, notifyMail)
-
-	return
-
 	// We check for updates every minute
 	//duration, _ := time.ParseDuration(configuration.UpdateInterval)
 	go updateAtInterval(60, urlStocks, configuration, db)
@@ -100,13 +87,13 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 				case hour == 13 && minute < 5:
 				case hour == 15 && minute < 5:
 					fmt.Println("\t\tOn chosen hours")
-					notifyMail := composeMailString(stockList, "update")
+					notifyMail := composeMailTemplate(stockList, "update")
 					sendMail(configuration, notifyMail)
 				case hour == 17 && minute < 5:
 					fmt.Println("\t\tAt close")
 					// Calculate any trends at end of day
 					trendingStocks := CalculateTrends(configuration, stockList, db)
-					notifyMail := composeMailString(trendingStocks, "trend")
+					notifyMail := composeMailTemplate(trendingStocks, "trend")
 					sendMail(configuration, notifyMail)
 				}
 			}
