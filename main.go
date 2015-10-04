@@ -1,7 +1,6 @@
 package main
 
 import (
-	//"encoding/hex"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -36,7 +35,6 @@ func main() {
 	configuration := Configuration{}
 	loadConfig(&configuration)
 
-	//@TODO Move this into a function/package
 	db := loadDatabase(&configuration)
 
 	symbolString := convertStocksString(configuration.Symbols)
@@ -47,9 +45,22 @@ func main() {
 	// URL to get broad financials for multiple stocks
 	var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
 
+	fmt.Println("\tFalls within 15 minute interval")
+	body := getDataFromURL(urlStocks)
+
+	jsonString := sanitizeBody("google", body)
+
+	stockList := make([]Stocks, 0)
+	stockList = parseJSONData(jsonString)
+
+	notifyMail := composeMailTemplate(stockList, "trend")
+	sendMail(configuration, notifyMail)
+
+	return
+
 	// We check for updates every minute
 	//duration, _ := time.ParseDuration(configuration.UpdateInterval)
-	go updateAtInterval(60, urlStocks, configuration, db) // very useful for interval polling
+	go updateAtInterval(60, urlStocks, configuration, db)
 
 	select {} // this will cause the program to run forever
 }
@@ -58,7 +69,7 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 
 	for _ = range time.Tick(n * time.Second) {
 		t := time.Now()
-		fmt.Println("BEGIN. Location:", t.Location(), ":Time:", t, "\n")
+		fmt.Println("BEGIN. Location:", t.Location(), ":Time:", t)
 		utc, err := time.LoadLocation(configuration.TimeZone)
 		if err != nil {
 			fmt.Println("err: ", err.Error())
@@ -69,10 +80,10 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 
 		// This must only be run when the markets are open
 		if weekday != 6 && weekday != 0 && hour >= 9 && hour < 17 {
-			fmt.Println("\tFalls within operating hours\n")
+			fmt.Println("\tFalls within operating hours")
 			// Save results every 15 minutes
 			if math.Mod(float64(minute), 15.) == 0 {
-				fmt.Println("\tFalls within 15 minute interval\n")
+				fmt.Println("\tFalls within 15 minute interval")
 				body := getDataFromURL(urlStocks)
 
 				jsonString := sanitizeBody("google", body)
@@ -88,11 +99,11 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 				case hour == 11 && minute < 5:
 				case hour == 13 && minute < 5:
 				case hour == 15 && minute < 5:
-					fmt.Println("\t\tOn chosen hours\n")
+					fmt.Println("\t\tOn chosen hours")
 					notifyMail := composeMailString(stockList, "update")
 					sendMail(configuration, notifyMail)
 				case hour == 17 && minute < 5:
-					fmt.Println("\t\tAt close\n")
+					fmt.Println("\t\tAt close")
 					// Calculate any trends at end of day
 					trendingStocks := CalculateTrends(configuration, stockList, db)
 					notifyMail := composeMailString(trendingStocks, "trend")
@@ -100,7 +111,7 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 				}
 			}
 		}
-		fmt.Println("END. Location:", t.Location(), ":Time:", t, "\n")
+		fmt.Println("END. Location:", t.Location(), ":Time:", t)
 	}
 }
 
