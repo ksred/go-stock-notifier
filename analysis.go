@@ -27,9 +27,15 @@ type StockSingle struct {
 	Shares           string `json:"shares"`
 }
 
+//@TODO This can be:
+// type Stocks []Stock
+// Where Stock is StockSingle above
 type Stocks struct {
 	Stock StockSingle
 }
+
+//@TODO We can use sorting to show the top movers etc
+// http://nerdyworm.com/blog/2013/05/15/sorting-a-slice-of-structs-in-go/
 
 func CalculateTrends(configuration Configuration, stockList []Stocks, db *sql.DB) (trendingStocks []Stocks) {
 	db, err := sql.Open("mysql", configuration.MySQLUser+":"+configuration.MySQLPass+"@tcp("+configuration.MySQLHost+":"+configuration.MySQLPort+")/"+configuration.MySQLDB)
