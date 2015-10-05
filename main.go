@@ -47,6 +47,7 @@ func main() {
 
 	// We check for updates every minute
 	//duration, _ := time.ParseDuration(configuration.UpdateInterval)
+	fmt.Println("Go finance started")
 	go updateAtInterval(60, urlStocks, configuration, db)
 
 	select {} // this will cause the program to run forever
@@ -68,9 +69,11 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 		// This must only be run when the markets are open
 		if weekday != 6 && weekday != 0 && hour >= 9 && hour < 17 {
 			fmt.Println("\tFalls within operating hours")
+			fmt.Println(hour)
+			fmt.Println(minute)
 			// Save results every 15 minutes
 			if math.Mod(float64(minute), 15.) == 0 {
-				fmt.Println("\tFalls within 15 minute interval")
+				fmt.Println("\tFalls within 15 minute interval ")
 				body := getDataFromURL(urlStocks)
 
 				jsonString := sanitizeBody("google", body)
@@ -80,21 +83,22 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 
 				saveToDB(db, stockList, configuration)
 				// Mail every X, here is 2 hours
-				switch {
-				//@TODO Make this dynamic from config
-				case hour == 9 && minute < 5:
-				case hour == 11 && minute < 5:
-				case hour == 13 && minute < 5:
-				case hour == 15 && minute < 5:
-					fmt.Println("\t\tOn chosen hours")
-					notifyMail := composeMailTemplate(stockList, "update")
-					sendMail(configuration, notifyMail)
-				case hour == 17 && minute < 5:
-					fmt.Println("\t\tAt close")
-					// Calculate any trends at end of day
-					trendingStocks := CalculateTrends(configuration, stockList, db)
-					notifyMail := composeMailTemplate(trendingStocks, "trend")
-					sendMail(configuration, notifyMail)
+				if minute == 0 {
+					switch hour {
+					//@TODO Make this dynamic from config
+					case 9, 11, 13, 14, 15:
+						fmt.Println("\t\tOn chosen hours")
+						notifyMail := composeMailTemplate(stockList, "update")
+						sendMail(configuration, notifyMail)
+						break
+					case 17:
+						fmt.Println("\t\tAt close")
+						// Calculate any trends at end of day
+						trendingStocks := CalculateTrends(configuration, stockList, db)
+						notifyMail := composeMailTemplate(trendingStocks, "trend")
+						sendMail(configuration, notifyMail)
+						break
+					}
 				}
 			}
 		}
