@@ -8,7 +8,7 @@ import (
 	"log"
 )
 
-type StockSingle struct {
+type Stock struct {
 	Symbol           string `json:"t"`
 	Exchange         string `json:"e"`
 	Name             string `json:"name"`
@@ -27,17 +27,10 @@ type StockSingle struct {
 	Shares           string `json:"shares"`
 }
 
-//@TODO This can be:
-// type Stocks []Stock
-// Where Stock is StockSingle above
-type Stocks struct {
-	Stock StockSingle
-}
-
 //@TODO We can use sorting to show the top movers etc
 // http://nerdyworm.com/blog/2013/05/15/sorting-a-slice-of-structs-in-go/
 
-func CalculateTrends(configuration Configuration, stockList []Stocks, db *sql.DB) (trendingStocks []Stocks) {
+func CalculateTrends(configuration Configuration, stockList []Stock, db *sql.DB) (trendingStocks []Stock) {
 	db, err := sql.Open("mysql", configuration.MySQLUser+":"+configuration.MySQLPass+"@tcp("+configuration.MySQLHost+":"+configuration.MySQLPort+")/"+configuration.MySQLDB)
 	if err != nil {
 		fmt.Println("Could not connect to database")
@@ -45,15 +38,13 @@ func CalculateTrends(configuration Configuration, stockList []Stocks, db *sql.DB
 	}
 
 	fmt.Println("\t\t\tChecking for trends")
-	trendingStocks = make([]Stocks, 0)
+	trendingStocks = make([]Stock, 0)
 	for i := range stockList {
-		//@TODO Save results to database
-		stock := stockList[i].Stock
+		stock := stockList[i]
 
 		// Prepare statement for inserting data
-		//var stockReturn StockSingle
-		//rows, err := db.Query("SELECT `close`, `volume` FROM `st_data` WHERE `symbol` = ? GROUP BY `day` LIMIT 3", stock.Symbol)
-		rows, err := db.Query("SELECT `close`, `volume` FROM `st_data` WHERE `symbol` = ? LIMIT 3", stock.Symbol)
+		rows, err := db.Query("SELECT `close`, `volume` FROM `st_data` WHERE `symbol` = ? GROUP BY `day` LIMIT 3", stock.Symbol)
+		//rows, err := db.Query("SELECT `close`, `volume` FROM `st_data` WHERE `symbol` = ? LIMIT 3", stock.Symbol)
 		if err != nil {
 			fmt.Println("Error with select query: " + err.Error())
 		}
@@ -76,17 +67,13 @@ func CalculateTrends(configuration Configuration, stockList []Stocks, db *sql.DB
 			log.Fatal(err)
 		}
 
-		stocks := Stocks{}
-
 		if count == 3 {
 			if doTrendCalculation(allCloses, allVolumes, "up") {
 				fmt.Printf("\t\t\tTrend UP for %s\n", stock.Symbol)
-				stocks.Stock = stock
-				trendingStocks = append(trendingStocks, stocks)
+				trendingStocks = append(trendingStocks, stock)
 			} else if doTrendCalculation(allCloses, allVolumes, "down") {
 				fmt.Printf("\t\t\tTrend DOWN for %s\n", stock.Symbol)
-				stocks.Stock = stock
-				trendingStocks = append(trendingStocks, stocks)
+				trendingStocks = append(trendingStocks, stock)
 			}
 		}
 

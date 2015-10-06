@@ -27,7 +27,7 @@ func loadDatabase(configuration *Configuration) (db *sql.DB) {
 	return
 }
 
-func saveToDB(db *sql.DB, stockList []Stocks, configuration Configuration) {
+func saveToDB(db *sql.DB, stockList []Stock, configuration Configuration) {
 	db, err := sql.Open("mysql", configuration.MySQLUser+":"+configuration.MySQLPass+"@tcp("+configuration.MySQLHost+":"+configuration.MySQLPort+")/"+configuration.MySQLDB)
 	if err != nil {
 		fmt.Println("Could not connect to database")
@@ -36,7 +36,7 @@ func saveToDB(db *sql.DB, stockList []Stocks, configuration Configuration) {
 
 	for i := range stockList {
 		//@TODO Save results to database
-		stock := stockList[i].Stock
+		stock := stockList[i]
 
 		// Prepare statement for inserting data
 		insertStatement := "INSERT INTO st_data (`symbol`, `exchange`, `name`, `change`, `close`, `percentageChange`, `open`, `high`, `low`, `volume` , `avgVolume`, `high52` , `low52`, `marketCap`, `eps`, `shares`, `time`, `minute`, `hour`, `day`, `month`, `year`) "

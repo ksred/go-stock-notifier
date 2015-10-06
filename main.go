@@ -78,7 +78,7 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 
 				jsonString := sanitizeBody("google", body)
 
-				stockList := make([]Stocks, 0)
+				stockList := make([]Stock, 0)
 				stockList = parseJSONData(jsonString)
 
 				saveToDB(db, stockList, configuration)

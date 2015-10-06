@@ -10,23 +10,19 @@ import (
 	"strings"
 )
 
-func parseJSONData(jsonString []byte) (stockList []Stocks) {
+func parseJSONData(jsonString []byte) (stockList []Stock) {
 	raw := make([]json.RawMessage, 10)
 	if err := json.Unmarshal(jsonString, &raw); err != nil {
 		log.Fatalf("error %v", err)
 	}
 
 	for i := 0; i < len(raw); i += 1 {
-		stocks := Stocks{}
-
-		stock := StockSingle{}
+		stock := Stock{}
 		if err := json.Unmarshal(raw[i], &stock); err != nil {
 			fmt.Println("error %v", err)
-		} else {
-			stocks.Stock = stock
 		}
 
-		stockList = append(stockList, stocks)
+		stockList = append(stockList, stock)
 	}
 
 	return

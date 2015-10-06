@@ -10,16 +10,16 @@ import (
 
 type MailTemplate struct {
 	Title  string
-	Stocks []StockSingle
+	Stocks []Stock
 }
 
-func composeMailTemplate(stockList []Stocks, mailType string) (notifyMail string) {
+func composeMailTemplate(stockList []Stock, mailType string) (notifyMail string) {
 	// https://jan.newmarch.name/go/template/chapter-template.html
 	var templateString bytes.Buffer
 	// Massage data
-	allStocks := make([]StockSingle, 0)
+	allStocks := make([]Stock, 0)
 	for i := range stockList {
-		stock := stockList[i].Stock
+		stock := stockList[i]
 		allStocks = append(allStocks, stock)
 	}
 
@@ -61,7 +61,7 @@ func composeMailTemplate(stockList []Stocks, mailType string) (notifyMail string
 	return
 }
 
-func composeMailString(stockList []Stocks, mailType string) (notifyMail string) {
+func composeMailString(stockList []Stock, mailType string) (notifyMail string) {
 	switch mailType {
 	case "update":
 		notifyMail = "Stock Update\n\n"
@@ -72,7 +72,7 @@ func composeMailString(stockList []Stocks, mailType string) (notifyMail string) 
 	}
 
 	for i := range stockList {
-		stock := stockList[i].Stock
+		stock := stockList[i]
 		notifyMail += fmt.Sprintf("=====================================\n")
 		notifyMail += fmt.Sprintf("%s\n", stock.Name)
 		notifyMail += fmt.Sprintf("%s: %s\n", stock.Symbol, stock.Exchange)
