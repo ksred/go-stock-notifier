@@ -21,7 +21,7 @@ func (slice Stocks) Len() int {
 }
 
 func (slice Stocks) Less(i, j int) bool {
-	return slice[i].PercentageChange > slice[j].PercentageChange
+	return slice[i].PercentageChange < slice[j].PercentageChange
 }
 
 func (slice Stocks) Swap(i, j int) {
@@ -34,7 +34,7 @@ func composeMailTemplate(stockList []Stock, mailType string) (notifyMail string)
 	displayStocks := Stocks{}
 
 	displayStocks = stockList
-	sort.Sort(displayStocks)
+	sort.Sort(sort.Reverse(displayStocks))
 
 	// https://jan.newmarch.name/go/template/chapter-template.html
 	var templateString bytes.Buffer
