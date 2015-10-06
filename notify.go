@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/smtp"
+	"sort"
 )
 
 type MailTemplate struct {
@@ -13,13 +14,34 @@ type MailTemplate struct {
 	Stocks []Stock
 }
 
+type Stocks []Stock
+
+func (slice Stocks) Len() int {
+	return len(slice)
+}
+
+func (slice Stocks) Less(i, j int) bool {
+	return slice[i].PercentageChange > slice[j].PercentageChange
+}
+
+func (slice Stocks) Swap(i, j int) {
+	slice[i], slice[j] = slice[j], slice[i]
+}
+
 func composeMailTemplate(stockList []Stock, mailType string) (notifyMail string) {
+	// Order by most gained to most lost
+	// @TODO Change template to show "top gainers" and "top losers"
+	displayStocks := Stocks{}
+
+	displayStocks = stockList
+	sort.Sort(displayStocks)
+
 	// https://jan.newmarch.name/go/template/chapter-template.html
 	var templateString bytes.Buffer
 	// Massage data
 	allStocks := make([]Stock, 0)
-	for i := range stockList {
-		stock := stockList[i]
+	for i := range displayStocks {
+		stock := displayStocks[i]
 		allStocks = append(allStocks, stock)
 	}
 
