@@ -43,7 +43,7 @@ func CalculateTrends(configuration Configuration, stockList []Stock, db *sql.DB)
 		stock := stockList[i]
 
 		// Prepare statement for inserting data
-		rows, err := db.Query("SELECT `close`, `volume` FROM `st_data` WHERE `symbol` = ? GROUP BY `day` LIMIT 3", stock.Symbol)
+		rows, err := db.Query("SELECT `close`, `avgVolume` FROM `st_data` WHERE `symbol` = ? GROUP BY `day` LIMIT 3", stock.Symbol)
 		//rows, err := db.Query("SELECT `close`, `volume` FROM `st_data` WHERE `symbol` = ? LIMIT 3", stock.Symbol)
 		if err != nil {
 			fmt.Println("Error with select query: " + err.Error())
@@ -89,15 +89,15 @@ func doTrendCalculation(closes []float64, volumes []float64, trendType string) (
 	  - A price increase (or decrease) each day for three days
 	  - A volume increase (or decrease) over two of the three days
 	*/
-	fmt.Printf("\t\t\t\tChecking trends with data: price: %f, %f, %f and volume: %f, %f, %f\n", closes[0], closes[1], closes[3], volumes[0], volumes[1], volumes[2])
+	fmt.Printf("\t\t\t\tChecking trends with data: price: %f, %f, %f and volume: %f, %f, %f\n", closes[0], closes[1], closes[2], volumes[0], volumes[1], volumes[2])
 	switch trendType {
 	case "up":
-		if closes[2] > closes[1] && closes[1] > closes[0] && volumes[2] > volumes[0] {
+		if closes[2] > closes[1] && closes[1] > closes[0] && (volumes[2] > volumes[0] || volumes[1] > volumes[1]) {
 			return true
 		}
 		break
 	case "down":
-		if closes[2] < closes[1] && closes[1] < closes[0] && volumes[2] < volumes[0] {
+		if closes[2] < closes[1] && closes[1] < closes[0] && (volumes[2] > volumes[0] || volumes[1] > volumes[0]) {
 			return true
 		}
 		break

@@ -54,6 +54,10 @@
                             <td><strong>Shares</strong></td><td>{{ .Shares }}</td>
                             <td></td><td></td>
                         </tr>
+                        <tr>
+                            <td><strong>Link</strong></td><td><a href="https://www.google.com/finance?q={{ .Exchange }}:{{ .Symbol }}&ei=S0gVVvGqK4vHUdr9joAG">{{ .Symbol }}</a></td>
+                            <td></td><td></td>
+                        </tr>
                     </table>
                     <br /><br />
                     {{ end }}
