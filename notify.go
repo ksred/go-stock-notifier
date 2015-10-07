@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/smtp"
 	"sort"
+	"strconv"
 )
 
 type MailTemplate struct {
@@ -21,7 +22,9 @@ func (slice Stocks) Len() int {
 }
 
 func (slice Stocks) Less(i, j int) bool {
-	return slice[i].PercentageChange < slice[j].PercentageChange
+	val1, _ := strconv.ParseFloat(slice[i].PercentageChange, 64)
+	val2, _ := strconv.ParseFloat(slice[j].PercentageChange, 64)
+	return val1 < val2
 }
 
 func (slice Stocks) Swap(i, j int) {
