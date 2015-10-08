@@ -15,7 +15,13 @@ type MailTemplate struct {
 	Stocks []Stock
 }
 
+type MailTemplateTrending struct {
+	Title  string
+	Stocks []TrendingStock
+}
+
 type Stocks []Stock
+type TrendingStocks []TrendingStock
 
 func (slice Stocks) Len() int {
 	return len(slice)
@@ -29,6 +35,76 @@ func (slice Stocks) Less(i, j int) bool {
 
 func (slice Stocks) Swap(i, j int) {
 	slice[i], slice[j] = slice[j], slice[i]
+}
+
+// Trending stocks sort
+func (slice TrendingStocks) Len() int {
+	return len(slice)
+}
+
+func (slice TrendingStocks) Less(i, j int) bool {
+	val1, _ := strconv.ParseFloat(slice[i].PercentageChange, 64)
+	val2, _ := strconv.ParseFloat(slice[j].PercentageChange, 64)
+	return val1 < val2
+}
+
+func (slice TrendingStocks) Swap(i, j int) {
+	slice[i], slice[j] = slice[j], slice[i]
+}
+
+func composeMailTemplateTrending(stockList []TrendingStock, mailType string) (notifyMail string) {
+	// Order by most gained to most lost
+	// @TODO Change template to show "top gainers" and "top losers"
+	displayStocks := TrendingStocks{}
+
+	displayStocks = stockList
+	sort.Sort(sort.Reverse(displayStocks))
+
+	// https://jan.newmarch.name/go/template/chapter-template.html
+	var templateString bytes.Buffer
+	// Massage data
+	allStocks := make([]TrendingStock, 0)
+	for i := range displayStocks {
+		stock := displayStocks[i]
+		allStocks = append(allStocks, stock)
+	}
+
+	mailTpl := MailTemplateTrending{
+		Stocks: allStocks,
+	}
+
+	switch mailType {
+	case "update":
+		mailTpl.Title = "Stock update"
+		t, err := template.ParseFiles("tpl/notification.html")
+		if err != nil {
+			fmt.Println("template parse error: ", err)
+			return
+		}
+		err = t.Execute(&templateString, mailTpl)
+		if err != nil {
+			fmt.Println("template executing error: ", err)
+			return
+		}
+		break
+	case "trend":
+		mailTpl.Title = "Trends update"
+		t, err := template.ParseFiles("tpl/trending.html")
+		if err != nil {
+			fmt.Println("template parse error: ", err)
+			return
+		}
+		err = t.Execute(&templateString, mailTpl)
+		if err != nil {
+			fmt.Println("template executing error: ", err)
+			return
+		}
+		break
+	}
+
+	notifyMail = templateString.String()
+
+	return
 }
 
 func composeMailTemplate(stockList []Stock, mailType string) (notifyMail string) {

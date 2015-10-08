@@ -27,10 +27,16 @@ type Stock struct {
 	Shares           string `json:"shares"`
 }
 
+type TrendingStock struct {
+	*Stock
+	TrendingDirection string
+	TrendingStrength  int
+}
+
 //@TODO We can use sorting to show the top movers etc
 // http://nerdyworm.com/blog/2013/05/15/sorting-a-slice-of-structs-in-go/
 
-func CalculateTrends(configuration Configuration, stockList []Stock, db *sql.DB) (trendingStocks []Stock) {
+func CalculateTrends(configuration Configuration, stockList []Stock, db *sql.DB) (trendingStocks []TrendingStock) {
 	db, err := sql.Open("mysql", configuration.MySQLUser+":"+configuration.MySQLPass+"@tcp("+configuration.MySQLHost+":"+configuration.MySQLPort+")/"+configuration.MySQLDB)
 	if err != nil {
 		fmt.Println("Could not connect to database")
@@ -38,7 +44,7 @@ func CalculateTrends(configuration Configuration, stockList []Stock, db *sql.DB)
 	}
 
 	fmt.Println("\t\t\tChecking for trends")
-	trendingStocks = make([]Stock, 0)
+	trendingStocks = make([]TrendingStock, 0)
 	for i := range stockList {
 		stock := stockList[i]
 
@@ -70,10 +76,14 @@ func CalculateTrends(configuration Configuration, stockList []Stock, db *sql.DB)
 		if count == 3 {
 			if doTrendCalculation(allCloses, allVolumes, "up") {
 				fmt.Printf("\t\t\tTrend UP for %s\n", stock.Symbol)
-				trendingStocks = append(trendingStocks, stock)
+
+				trendingStock := TrendingStock{&stock, "up", 0}
+				trendingStocks = append(trendingStocks, trendingStock)
 			} else if doTrendCalculation(allCloses, allVolumes, "down") {
 				fmt.Printf("\t\t\tTrend DOWN for %s\n", stock.Symbol)
-				trendingStocks = append(trendingStocks, stock)
+
+				trendingStock := TrendingStock{&stock, "down", 0}
+				trendingStocks = append(trendingStocks, trendingStock)
 			}
 		}
 
