@@ -102,12 +102,12 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 				if minute == 0 {
 					switch hour {
 					//@TODO Make this dynamic from config
-					case 9, 11, 13, 14, 17:
+					case 9, 11, 13, 15, 17:
 						fmt.Println("\t\tOn chosen hours")
 						notifyMail := composeMailTemplate(stockList, "update")
 						sendMail(configuration, notifyMail)
 						break
-					case 15:
+					case 7:
 						fmt.Println("\t\tTrending")
 						// Calculate any trends at end of day
 						trendingStocks := CalculateTrends(configuration, stockList, db)
