@@ -45,20 +45,22 @@ func main() {
 	// URL to get broad financials for multiple stocks
 	var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
 
-	body := getDataFromURL(urlStocks)
+	/*
+		body := getDataFromURL(urlStocks)
 
-	jsonString := sanitizeBody("google", body)
+		jsonString := sanitizeBody("google", body)
 
-	stockList := make([]Stock, 0)
-	stockList = parseJSONData(jsonString)
+		stockList := make([]Stock, 0)
+		stockList = parseJSONData(jsonString)
 
-	fmt.Println("\t\tOn chosen hours")
-	trendingStocks := CalculateTrends(configuration, stockList, db)
-	notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
-	fmt.Println(len(notifyMail))
-	sendMail(configuration, notifyMail)
+		fmt.Println("\t\tOn chosen hours")
+		trendingStocks := CalculateTrends(configuration, stockList, db)
+		notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
+		fmt.Println(len(notifyMail))
+		sendMail(configuration, notifyMail)
 
-	return
+		return
+	*/
 	// We check for updates every minute
 	//duration, _ := time.ParseDuration(configuration.UpdateInterval)
 	fmt.Println("Go finance started")
