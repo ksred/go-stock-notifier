@@ -3,8 +3,8 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"flag"
 	"fmt"
-	//@TODO Move into separate packge
 	_ "github.com/go-sql-driver/mysql"
 	"io/ioutil"
 	"math"
@@ -37,6 +37,8 @@ func main() {
 
 	db := loadDatabase(&configuration)
 
+	checkFlags(configuration, db)
+
 	symbolString := convertStocksString(configuration.Symbols)
 
 	// Yahoo: http://chartapi.finance.yahoo.com/instrument/1.0/msft/chartdata;type=quote;ys=2005;yz=4;ts=1234567890/json
@@ -67,6 +69,43 @@ func main() {
 	go updateAtInterval(60, urlStocks, configuration, db)
 
 	select {} // this will cause the program to run forever
+}
+
+func checkFlags(configuration Configuration, db *sql.DB) {
+	// Check for any flags
+	testFlag := flag.String("test", "", "Test to run")
+	symbolFlag := flag.String("symbol", "", "Symbol to run test against")
+
+	flag.Parse()
+
+	// Dereference
+	flagParsed := *testFlag
+	symbolParsed := *symbolFlag
+
+	switch flagParsed {
+	case "trendMail":
+		symbolString := convertStocksString(configuration.Symbols)
+		var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
+		body := getDataFromURL(urlStocks)
+
+		jsonString := sanitizeBody("google", body)
+
+		stockList := make([]Stock, 0)
+		stockList = parseJSONData(jsonString)
+
+		trendingStocks := CalculateTrends(configuration, stockList, db)
+		notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
+		sendMail(configuration, notifyMail)
+
+		break
+	case "update":
+		break
+	case "stdDev":
+		calculateStdDev(configuration, db, symbolParsed)
+		break
+	}
+
+	os.Exit(0)
 }
 
 func updateAtInterval(n time.Duration, urlStocks string, configuration Configuration, db *sql.DB) {
@@ -118,7 +157,7 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 
 				saveToDB(db, stockList, configuration)
 				// Mail every X, here is 2 hours
-				if minute == 0 {
+				if minute == 15 {
 					switch hour {
 					//@TODO Make this dynamic from config
 					case 9, 11, 13, 15, 17:

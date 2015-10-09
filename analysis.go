@@ -6,6 +6,7 @@ import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
+	"math"
 )
 
 type Stock struct {
@@ -31,6 +32,8 @@ type TrendingStock struct {
 	*Stock
 	TrendingDirection string
 	TrendingStrength  int
+	Volatility        float64
+	VolatilityPerc    float64
 }
 
 //@TODO We can use sorting to show the top movers etc
@@ -76,13 +79,15 @@ func CalculateTrends(configuration Configuration, stockList []Stock, db *sql.DB)
 		if count == 3 {
 			if doTrendCalculation(allCloses, allVolumes, "up") {
 				fmt.Printf("\t\t\tTrend UP for %s\n", stock.Symbol)
+				volatility, volatilityPerc := calculateStdDev(configuration, db, stock.Symbol)
 
-				trendingStock := TrendingStock{&stock, "up", 0}
+				trendingStock := TrendingStock{&stock, "up", 0, volatility, volatilityPerc}
 				trendingStocks = append(trendingStocks, trendingStock)
 			} else if doTrendCalculation(allCloses, allVolumes, "down") {
 				fmt.Printf("\t\t\tTrend DOWN for %s\n", stock.Symbol)
+				volatility, volatilityPerc := calculateStdDev(configuration, db, stock.Symbol)
 
-				trendingStock := TrendingStock{&stock, "down", 0}
+				trendingStock := TrendingStock{&stock, "down", 0, volatility, volatilityPerc}
 				trendingStocks = append(trendingStocks, trendingStock)
 			}
 		}
@@ -114,4 +119,70 @@ func doTrendCalculation(closes []float64, volumes []float64, trendType string) (
 	}
 
 	return false
+}
+
+func calculateStdDev(configuration Configuration, db *sql.DB, symbol string) (volatility float64, volatilityPerc float64) {
+	fmt.Println("Calculating standard deviation for symbol " + symbol)
+
+	db, err := sql.Open("mysql", configuration.MySQLUser+":"+configuration.MySQLPass+"@tcp("+configuration.MySQLHost+":"+configuration.MySQLPort+")/"+configuration.MySQLDB)
+	if err != nil {
+		fmt.Println("Could not connect to database")
+		return
+	}
+
+	// Get all closes for given stock
+	rows, err := db.Query("SELECT `close` FROM `st_data` WHERE `symbol` = ? GROUP BY `day` LIMIT 365", symbol) // Default is one year's data
+	if err != nil {
+		fmt.Println("Error with select query: " + err.Error())
+	}
+	defer rows.Close()
+
+	allCloses := make([]float64, 0)
+	var totalCloses float64
+	count := 0.
+	for rows.Next() {
+		var stockClose float64
+		if err := rows.Scan(&stockClose); err != nil {
+			log.Fatal(err)
+		}
+		totalCloses += stockClose
+
+		fmt.Printf("Close at count %f is %f\n", count, stockClose)
+		allCloses = append(allCloses, stockClose)
+		count++
+	}
+	if err := rows.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("Total closes %f\n", count)
+
+	// Calculate mean
+	mean := totalCloses / count
+	fmt.Printf("Mean is %f\n", mean)
+
+	// Get all deviations
+	deviationsSquare := 0.
+	for _, cl := range allCloses {
+		dev := cl - mean
+		deviationsSquare += dev * dev
+	}
+	fmt.Printf("Deviations square is %f\n", deviationsSquare)
+
+	// Calculate average square of deviations
+	devSquareAvg := deviationsSquare / count
+	fmt.Printf("Deviations square average is %f\n", devSquareAvg)
+
+	// Volatility is sqrt
+	volatility = math.Sqrt(devSquareAvg)
+
+	fmt.Printf("Volatility of stock %s is %f\n", symbol, volatility)
+
+	// Make volatility a % so we can judge
+	volatilityPerc = (volatility / allCloses[int(count)-1]) * 100
+	fmt.Printf("Volatility of stock %s as percenatge is %f\n", symbol, volatilityPerc)
+
+	defer db.Close()
+
+	return
 }
