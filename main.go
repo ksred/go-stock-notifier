@@ -97,15 +97,17 @@ func checkFlags(configuration Configuration, db *sql.DB) {
 		notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
 		sendMail(configuration, notifyMail)
 
+		os.Exit(0)
+
 		break
 	case "update":
 		break
 	case "stdDev":
 		calculateStdDev(configuration, db, symbolParsed, 2)
+
+		os.Exit(0)
 		break
 	}
-
-	os.Exit(0)
 }
 
 func updateAtInterval(n time.Duration, urlStocks string, configuration Configuration, db *sql.DB) {
