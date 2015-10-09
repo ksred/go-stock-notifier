@@ -101,7 +101,7 @@ func checkFlags(configuration Configuration, db *sql.DB) {
 	case "update":
 		break
 	case "stdDev":
-		calculateStdDev(configuration, db, symbolParsed)
+		calculateStdDev(configuration, db, symbolParsed, 2)
 		break
 	}
 

@@ -79,13 +79,13 @@ func CalculateTrends(configuration Configuration, stockList []Stock, db *sql.DB)
 		if count == 3 {
 			if doTrendCalculation(allCloses, allVolumes, "up") {
 				fmt.Printf("\t\t\tTrend UP for %s\n", stock.Symbol)
-				volatility, volatilityPerc := calculateStdDev(configuration, db, stock.Symbol)
+				volatility, volatilityPerc := calculateStdDev(configuration, db, stock.Symbol, 2)
 
 				trendingStock := TrendingStock{&stock, "up", 0, volatility, volatilityPerc}
 				trendingStocks = append(trendingStocks, trendingStock)
 			} else if doTrendCalculation(allCloses, allVolumes, "down") {
 				fmt.Printf("\t\t\tTrend DOWN for %s\n", stock.Symbol)
-				volatility, volatilityPerc := calculateStdDev(configuration, db, stock.Symbol)
+				volatility, volatilityPerc := calculateStdDev(configuration, db, stock.Symbol, 2)
 
 				trendingStock := TrendingStock{&stock, "down", 0, volatility, volatilityPerc}
 				trendingStocks = append(trendingStocks, trendingStock)
@@ -121,7 +121,7 @@ func doTrendCalculation(closes []float64, volumes []float64, trendType string) (
 	return false
 }
 
-func calculateStdDev(configuration Configuration, db *sql.DB, symbol string) (volatility float64, volatilityPerc float64) {
+func calculateStdDev(configuration Configuration, db *sql.DB, symbol string, decimalPlaces int) (volatility float64, volatilityPerc float64) {
 	fmt.Println("Calculating standard deviation for symbol " + symbol)
 
 	db, err := sql.Open("mysql", configuration.MySQLUser+":"+configuration.MySQLPass+"@tcp("+configuration.MySQLHost+":"+configuration.MySQLPort+")/"+configuration.MySQLDB)
@@ -182,7 +182,22 @@ func calculateStdDev(configuration Configuration, db *sql.DB, symbol string) (vo
 	volatilityPerc = (volatility / allCloses[int(count)-1]) * 100
 	fmt.Printf("Volatility of stock %s as percenatge is %f\n", symbol, volatilityPerc)
 
+	// Round the volatility
+	if decimalPlaces != 0 {
+		volatility = RoundDown(volatility, decimalPlaces)
+		volatilityPerc = RoundDown(volatilityPerc, decimalPlaces)
+	}
+
 	defer db.Close()
 
+	return
+}
+
+func RoundDown(input float64, places int) (newVal float64) {
+	var round float64
+	pow := math.Pow(10, float64(places))
+	digit := pow * input
+	round = math.Floor(digit)
+	newVal = round / pow
 	return
 }
