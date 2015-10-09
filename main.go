@@ -82,6 +82,25 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 		minute := t.In(utc).Minute()
 		weekday := t.In(utc).Weekday()
 
+		// Send trending mail
+		if weekday != 6 && weekday != 0 {
+			if hour == 7 {
+				body := getDataFromURL(urlStocks)
+
+				jsonString := sanitizeBody("google", body)
+
+				stockList := make([]Stock, 0)
+				stockList = parseJSONData(jsonString)
+
+				fmt.Println("\t\tTrending")
+				// Calculate any trends at end of day
+				trendingStocks := CalculateTrends(configuration, stockList, db)
+				notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
+				sendMail(configuration, notifyMail)
+				break
+			}
+		}
+
 		// This must only be run when the markets are open
 		if weekday != 6 && weekday != 0 && hour >= 9 && hour < 17 {
 			fmt.Println("\tFalls within operating hours")
@@ -105,13 +124,6 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 					case 9, 11, 13, 15, 17:
 						fmt.Println("\t\tOn chosen hours")
 						notifyMail := composeMailTemplate(stockList, "update")
-						sendMail(configuration, notifyMail)
-						break
-					case 7:
-						fmt.Println("\t\tTrending")
-						// Calculate any trends at end of day
-						trendingStocks := CalculateTrends(configuration, stockList, db)
-						notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
 						sendMail(configuration, notifyMail)
 						break
 					}
