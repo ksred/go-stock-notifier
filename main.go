@@ -83,6 +83,20 @@ func checkFlags(configuration Configuration, db *sql.DB) {
 	symbolParsed := *symbolFlag
 
 	switch flagParsed {
+	case "trends":
+		symbolString := convertStocksString(configuration.Symbols)
+		var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
+		body := getDataFromURL(urlStocks)
+
+		jsonString := sanitizeBody("google", body)
+
+		stockList := make([]Stock, 0)
+		stockList = parseJSONData(jsonString)
+
+		CalculateTrends(configuration, stockList, db)
+		os.Exit(0)
+
+		break
 	case "trendMail":
 		symbolString := convertStocksString(configuration.Symbols)
 		var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
@@ -108,7 +122,7 @@ func checkFlags(configuration Configuration, db *sql.DB) {
 		os.Exit(0)
 		break
 	default:
-		fmt.Println("Incorrect option chosen: trendMail, update, stdDev")
+		fmt.Println("Incorrect option chosen: trends, trendMail, update, stdDev")
 		os.Exit(0)
 		break
 	}
