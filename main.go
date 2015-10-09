@@ -84,7 +84,7 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 
 		// Send trending mail
 		if weekday != 6 && weekday != 0 {
-			if hour == 7 {
+			if hour == 7 && minute == 0 {
 				body := getDataFromURL(urlStocks)
 
 				jsonString := sanitizeBody("google", body)
