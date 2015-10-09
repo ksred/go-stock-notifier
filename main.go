@@ -107,6 +107,10 @@ func checkFlags(configuration Configuration, db *sql.DB) {
 
 		os.Exit(0)
 		break
+	default:
+		fmt.Println("Incorrect option chosen: trendMail, update, stdDev")
+		os.Exit(0)
+		break
 	}
 }
 
