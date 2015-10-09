@@ -107,7 +107,7 @@ func doTrendCalculation(closes []float64, volumes []float64, trendType string) (
 	fmt.Printf("\t\t\t\tChecking trends with data: price: %f, %f, %f and volume: %f, %f, %f\n", closes[0], closes[1], closes[2], volumes[0], volumes[1], volumes[2])
 	switch trendType {
 	case "up":
-		if closes[2] > closes[1] && closes[1] > closes[0] && (volumes[2] > volumes[0] || volumes[1] > volumes[1]) {
+		if closes[2] > closes[1] && closes[1] > closes[0] && (volumes[2] > volumes[0] || volumes[1] > volumes[0]) {
 			return true
 		}
 		break
