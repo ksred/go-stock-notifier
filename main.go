@@ -93,7 +93,7 @@ func checkFlags(configuration Configuration, db *sql.DB) {
 		stockList := make([]Stock, 0)
 		stockList = parseJSONData(jsonString)
 
-		CalculateTrends(configuration, stockList, db)
+		CalculateTrends(configuration, stockList, db, "day", 3)
 		os.Exit(0)
 
 		break
@@ -107,9 +107,30 @@ func checkFlags(configuration Configuration, db *sql.DB) {
 		stockList := make([]Stock, 0)
 		stockList = parseJSONData(jsonString)
 
-		trendingStocks := CalculateTrends(configuration, stockList, db)
-		notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
-		sendMail(configuration, notifyMail)
+		trendingStocks := CalculateTrends(configuration, stockList, db, "day", 3)
+		if len(trendingStocks) != 0 {
+			notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
+			sendMail(configuration, notifyMail)
+		}
+
+		os.Exit(0)
+
+		break
+	case "trendMailHourly":
+		symbolString := convertStocksString(configuration.Symbols)
+		var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
+		body := getDataFromURL(urlStocks)
+
+		jsonString := sanitizeBody("google", body)
+
+		stockList := make([]Stock, 0)
+		stockList = parseJSONData(jsonString)
+
+		trendingStocks := CalculateTrends(configuration, stockList, db, "hour", 3)
+		if len(trendingStocks) != 0 {
+			notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
+			sendMail(configuration, notifyMail)
+		}
 
 		os.Exit(0)
 
@@ -163,10 +184,12 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 				stockList = parseJSONData(jsonString)
 
 				fmt.Println("\t\tTrending")
-				// Calculate any trends at end of day
-				trendingStocks := CalculateTrends(configuration, stockList, db)
-				notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
-				sendMail(configuration, notifyMail)
+				// Calculate any trends at beginning of day
+				trendingStocks := CalculateTrends(configuration, stockList, db, "day", 3)
+				if len(trendingStocks) != 0 {
+					notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
+					sendMail(configuration, notifyMail)
+				}
 			}
 		}
 
