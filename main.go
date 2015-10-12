@@ -115,14 +115,25 @@ func checkFlags(configuration Configuration, db *sql.DB) {
 
 		break
 	case "update":
+		symbolString := convertStocksString(configuration.Symbols)
+		var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
+		body := getDataFromURL(urlStocks)
+
+		jsonString := sanitizeBody("google", body)
+
+		stockList := make([]Stock, 0)
+		stockList = parseJSONData(jsonString)
+
+		fmt.Println("\t\tOn chosen hours")
+		notifyMail := composeMailTemplate(stockList, "update")
+		sendMail(configuration, notifyMail)
+
+		os.Exit(0)
+
 		break
 	case "stdDev":
 		calculateStdDev(configuration, db, symbolParsed, 2)
 
-		os.Exit(0)
-		break
-	default:
-		fmt.Println("Incorrect option chosen: trends, trendMail, update, stdDev")
 		os.Exit(0)
 		break
 	}
@@ -156,7 +167,6 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 				trendingStocks := CalculateTrends(configuration, stockList, db)
 				notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
 				sendMail(configuration, notifyMail)
-				break
 			}
 		}
 
