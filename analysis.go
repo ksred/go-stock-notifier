@@ -56,11 +56,12 @@ func CalculateTrends(configuration Configuration, stockList []Stock, db *sql.DB,
 		rows, err := db.Query("")
 		// Need to manually put string in as it doesnt parse grouping correctly
 		switch grouping {
+		// SQL must get only the close price
 		case "day":
-			rows, err = db.Query("SELECT `close`, `avgVolume` FROM `st_data` WHERE `symbol` = ? GROUP BY `day` ORDER BY `id` DESC LIMIT ?", stock.Symbol, trendDepth)
+			rows, err = db.Query("SELECT `close`, `avgVolume` FROM `st_data` WHERE `symbol` = ? AND `hour` = 17 AND `minute` = 15 GROUP BY `day` ORDER BY `id` DESC LIMIT ?", stock.Symbol, trendDepth)
 			break
 		case "hour":
-			rows, err = db.Query("SELECT `close`, `avgVolume` FROM `st_data` WHERE `symbol` = ? GROUP BY `hour` ORDER BY `id` DESC LIMIT ?", stock.Symbol, trendDepth)
+			rows, err = db.Query("SELECT `close`, `avgVolume` FROM `st_data` WHERE `symbol` = ? AND `hour` = 17 AND `minute` = 15 GROUP BY `hour` ORDER BY `id` DESC LIMIT ?", stock.Symbol, trendDepth)
 			break
 		}
 		//rows, err := db.Query("SELECT `close`, `volume` FROM `st_data` WHERE `symbol` = ? LIMIT 3", stock.Symbol)
