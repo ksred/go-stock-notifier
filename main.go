@@ -93,7 +93,7 @@ func checkFlags(configuration Configuration, db *sql.DB) {
 		stockList := make([]Stock, 0)
 		stockList = parseJSONData(jsonString)
 
-		CalculateTrends(configuration, stockList, db)
+		CalculateTrends(configuration, stockList, db, "day", 3)
 		os.Exit(0)
 
 		break
@@ -107,22 +107,54 @@ func checkFlags(configuration Configuration, db *sql.DB) {
 		stockList := make([]Stock, 0)
 		stockList = parseJSONData(jsonString)
 
-		trendingStocks := CalculateTrends(configuration, stockList, db)
-		notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
-		sendMail(configuration, notifyMail)
+		trendingStocks := CalculateTrends(configuration, stockList, db, "day", 3)
+		if len(trendingStocks) != 0 {
+			notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
+			sendMail(configuration, notifyMail)
+		}
+
+		os.Exit(0)
+
+		break
+	case "trendMailHourly":
+		symbolString := convertStocksString(configuration.Symbols)
+		var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
+		body := getDataFromURL(urlStocks)
+
+		jsonString := sanitizeBody("google", body)
+
+		stockList := make([]Stock, 0)
+		stockList = parseJSONData(jsonString)
+
+		trendingStocks := CalculateTrends(configuration, stockList, db, "hour", 3)
+		if len(trendingStocks) != 0 {
+			notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
+			sendMail(configuration, notifyMail)
+		}
 
 		os.Exit(0)
 
 		break
 	case "update":
+		symbolString := convertStocksString(configuration.Symbols)
+		var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
+		body := getDataFromURL(urlStocks)
+
+		jsonString := sanitizeBody("google", body)
+
+		stockList := make([]Stock, 0)
+		stockList = parseJSONData(jsonString)
+
+		fmt.Println("\t\tOn chosen hours")
+		notifyMail := composeMailTemplate(stockList, "update")
+		sendMail(configuration, notifyMail)
+
+		os.Exit(0)
+
 		break
 	case "stdDev":
 		calculateStdDev(configuration, db, symbolParsed, 2)
 
-		os.Exit(0)
-		break
-	default:
-		fmt.Println("Incorrect option chosen: trends, trendMail, update, stdDev")
 		os.Exit(0)
 		break
 	}
@@ -140,25 +172,6 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 		hour := t.In(utc).Hour()
 		minute := t.In(utc).Minute()
 		weekday := t.In(utc).Weekday()
-
-		// Send trending mail
-		if weekday != 6 && weekday != 0 {
-			if hour == 7 && minute == 0 {
-				body := getDataFromURL(urlStocks)
-
-				jsonString := sanitizeBody("google", body)
-
-				stockList := make([]Stock, 0)
-				stockList = parseJSONData(jsonString)
-
-				fmt.Println("\t\tTrending")
-				// Calculate any trends at end of day
-				trendingStocks := CalculateTrends(configuration, stockList, db)
-				notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
-				sendMail(configuration, notifyMail)
-				break
-			}
-		}
 
 		// This must only be run when the markets are open
 		if weekday != 6 && weekday != 0 && hour >= 9 && hour < 17 {
@@ -187,6 +200,25 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 						break
 					}
 				}
+			}
+		}
+
+		// Get close
+		if weekday != 6 && weekday != 0 && hour == 17 && minute == 15 {
+			body := getDataFromURL(urlStocks)
+
+			jsonString := sanitizeBody("google", body)
+
+			stockList := make([]Stock, 0)
+			stockList = parseJSONData(jsonString)
+
+			saveToDB(db, stockList, configuration)
+
+			// Send trending update
+			trendingStocks := CalculateTrends(configuration, stockList, db, "day", 3)
+			if len(trendingStocks) != 0 {
+				notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
+				sendMail(configuration, notifyMail)
 			}
 		}
 		fmt.Println("END. Location:", t.Location(), ":Time:", t)

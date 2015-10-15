@@ -39,7 +39,7 @@ type TrendingStock struct {
 //@TODO We can use sorting to show the top movers etc
 // http://nerdyworm.com/blog/2013/05/15/sorting-a-slice-of-structs-in-go/
 
-func CalculateTrends(configuration Configuration, stockList []Stock, db *sql.DB) (trendingStocks []TrendingStock) {
+func CalculateTrends(configuration Configuration, stockList []Stock, db *sql.DB, grouping string, trendDepth int) (trendingStocks []TrendingStock) {
 	db, err := sql.Open("mysql", configuration.MySQLUser+":"+configuration.MySQLPass+"@tcp("+configuration.MySQLHost+":"+configuration.MySQLPort+")/"+configuration.MySQLDB)
 	if err != nil {
 		fmt.Println("Could not connect to database")
@@ -52,7 +52,18 @@ func CalculateTrends(configuration Configuration, stockList []Stock, db *sql.DB)
 		stock := stockList[i]
 
 		// Prepare statement for inserting data
-		rows, err := db.Query("SELECT `close`, `avgVolume` FROM `st_data` WHERE `symbol` = ? GROUP BY `day` ORDER BY `id` DESC LIMIT 3", stock.Symbol)
+		// Empty vars for initialisation
+		rows, err := db.Query("")
+		// Need to manually put string in as it doesnt parse grouping correctly
+		switch grouping {
+		// SQL must get only the close price
+		case "day":
+			rows, err = db.Query("SELECT `close`, `avgVolume` FROM `st_data` WHERE `symbol` = ? AND `hour` = 17 AND `minute` = 15 GROUP BY `day` ORDER BY `id` DESC LIMIT ?", stock.Symbol, trendDepth)
+			break
+		case "hour":
+			rows, err = db.Query("SELECT `close`, `avgVolume` FROM `st_data` WHERE `symbol` = ? AND `hour` = 17 AND `minute` = 15 GROUP BY `hour` ORDER BY `id` DESC LIMIT ?", stock.Symbol, trendDepth)
+			break
+		}
 		//rows, err := db.Query("SELECT `close`, `volume` FROM `st_data` WHERE `symbol` = ? LIMIT 3", stock.Symbol)
 		if err != nil {
 			fmt.Println("Error with select query: " + err.Error())
@@ -77,13 +88,13 @@ func CalculateTrends(configuration Configuration, stockList []Stock, db *sql.DB)
 		}
 
 		if count >= 3 {
-			if doTrendCalculation(allCloses, allVolumes, "up", stock.Symbol) {
+			if doTrendCalculation(allCloses, allVolumes, "up", stock.Symbol, grouping, trendDepth) {
 				fmt.Printf("\t\t\tTrend UP for %s\n", stock.Symbol)
 				volatility, volatilityPerc := calculateStdDev(configuration, db, stock.Symbol, 2)
 
 				trendingStock := TrendingStock{&stock, "up", 0, volatility, volatilityPerc}
 				trendingStocks = append(trendingStocks, trendingStock)
-			} else if doTrendCalculation(allCloses, allVolumes, "down", stock.Symbol) {
+			} else if doTrendCalculation(allCloses, allVolumes, "down", stock.Symbol, grouping, trendDepth) {
 				fmt.Printf("\t\t\tTrend DOWN for %s\n", stock.Symbol)
 				volatility, volatilityPerc := calculateStdDev(configuration, db, stock.Symbol, 2)
 
@@ -98,7 +109,7 @@ func CalculateTrends(configuration Configuration, stockList []Stock, db *sql.DB)
 	return
 }
 
-func doTrendCalculation(closes []float64, volumes []float64, trendType string, symbol string) (trending bool) {
+func doTrendCalculation(closes []float64, volumes []float64, trendType string, symbol string, grouping string, trendDepth int) (trending bool) {
 	/*@TODO
 	  Currently a simple analysis is done on daily stock data. This analysis is to identify trending stocks, with a trend being identified by:
 	  - A price increase (or decrease) each day for three days
@@ -107,13 +118,27 @@ func doTrendCalculation(closes []float64, volumes []float64, trendType string, s
 	fmt.Printf("\t\t\t\tChecking %s trends with data: price: %f, %f, %f and volume: %f, %f, %f\n", symbol, closes[0], closes[1], closes[2], volumes[0], volumes[1], volumes[2])
 	switch trendType {
 	case "up":
-		if closes[0] > closes[1] && closes[1] > closes[2] && (volumes[0] > volumes[2] || volumes[0] > volumes[1]) {
-			return true
+		if grouping == "day" {
+			if closes[0] > closes[1] && closes[1] > closes[2] && (volumes[0] > volumes[2] || volumes[0] > volumes[1]) {
+				return true
+			}
+		} else if grouping == "hour" {
+			// For now we aim for 3 periods
+			if closes[0] > closes[1] && closes[1] > closes[2] && (volumes[0] > volumes[2] || volumes[0] > volumes[1]) {
+				return true
+			}
 		}
 		break
 	case "down":
-		if closes[0] < closes[1] && closes[1] < closes[2] && (volumes[0] > volumes[2] || volumes[0] > volumes[1]) {
-			return true
+		if grouping == "day" {
+			if closes[0] < closes[1] && closes[1] < closes[2] && (volumes[0] > volumes[2] || volumes[0] > volumes[1]) {
+				return true
+			}
+		} else if grouping == "hour" {
+			// For now we aim for 3 periods
+			if closes[0] < closes[1] && closes[1] < closes[2] && (volumes[0] > volumes[2] || volumes[0] > volumes[1]) {
+				return true
+			}
 		}
 		break
 	}
