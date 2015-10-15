@@ -208,7 +208,6 @@ func sendMail(configuration Configuration, notifyMail string) {
 		"\r\n")
 
 	err := smtp.SendMail(configuration.MailSMTPServer+":"+configuration.MailSMTPPort, auth, configuration.MailSender, to, msg)
-	//err = smtp.SendMail("mail.messagingengine.com:587", auth, "ksred@fastmail.fm", []string{"kyle@ksred.me"}, msg)
 	if err != nil {
 		log.Fatal(err)
 	}
