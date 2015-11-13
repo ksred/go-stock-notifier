@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 )
@@ -13,13 +12,15 @@ import (
 func parseJSONData(jsonString []byte) (stockList []Stock) {
 	raw := make([]json.RawMessage, 10)
 	if err := json.Unmarshal(jsonString, &raw); err != nil {
-		log.Fatalf("error %v", err)
+		fmt.Println("error %v", err)
+		return
 	}
 
 	for i := 0; i < len(raw); i += 1 {
 		stock := Stock{}
 		if err := json.Unmarshal(raw[i], &stock); err != nil {
 			fmt.Println("error %v", err)
+			return
 		}
 
 		stockList = append(stockList, stock)

@@ -168,6 +168,7 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 		utc, err := time.LoadLocation(configuration.TimeZone)
 		if err != nil {
 			fmt.Println("err: ", err.Error())
+			return
 		}
 		hour := t.In(utc).Hour()
 		minute := t.In(utc).Minute()
@@ -196,7 +197,8 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 					case 9, 11, 13, 15, 17:
 						fmt.Println("\t\tOn chosen hours")
 						notifyMail := composeMailTemplate(stockList, "update")
-						sendMail(configuration, notifyMail)
+						//sendMail(configuration, notifyMail)
+						fmt.Println(len(notifyMail))
 						break
 					}
 				}
@@ -232,6 +234,7 @@ func loadConfig(configuration *Configuration) {
 	err := decoder.Decode(&configuration)
 	if err != nil {
 		fmt.Println("error:", err)
+		return
 	}
 }
 
@@ -239,6 +242,7 @@ func getDataFromURL(urlStocks string) (body []byte) {
 	resp, err := http.Get(urlStocks)
 	if err != nil {
 		// handle error
+		return
 	}
 	defer resp.Body.Close()
 	body, err = ioutil.ReadAll(resp.Body)
