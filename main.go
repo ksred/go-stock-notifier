@@ -89,70 +89,136 @@ func checkFlags(configuration Configuration, db *sql.DB) {
 
 	switch flagParsed {
 	case "trends":
-		symbolString := convertStocksString(configuration.Symbols)
-		var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
-		body := getDataFromURL(urlStocks)
+		interval := true
+		count := 0
+		for interval {
 
-		jsonString := sanitizeBody("google", body)
+			start := count * SYMBOL_INTERVAL
+			end := (count + 1) * SYMBOL_INTERVAL
 
-		stockList := make([]Stock, 0)
-		stockList = parseJSONData(jsonString)
+			if end > len(configuration.Symbols) {
+				end = len(configuration.Symbols)
+				interval = false
+			}
 
-		CalculateTrends(configuration, stockList, db, "day", 3)
+			symbolSlice := configuration.Symbols[start:end]
+			symbolString := convertStocksString(symbolSlice)
+			var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
+			body := getDataFromURL(urlStocks)
+
+			jsonString := sanitizeBody("google", body)
+
+			stockList := make([]Stock, 0)
+			stockList = parseJSONData(jsonString)
+
+			CalculateTrends(configuration, stockList, db, "day", 3)
+
+			count++
+		}
 		os.Exit(0)
 
 		break
 	case "trendMail":
-		symbolString := convertStocksString(configuration.Symbols)
-		var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
-		body := getDataFromURL(urlStocks)
+		interval := true
+		count := 0
+		for interval {
 
-		jsonString := sanitizeBody("google", body)
+			start := count * SYMBOL_INTERVAL
+			end := (count + 1) * SYMBOL_INTERVAL
 
-		stockList := make([]Stock, 0)
-		stockList = parseJSONData(jsonString)
+			if end > len(configuration.Symbols) {
+				end = len(configuration.Symbols)
+				interval = false
+			}
 
-		trendingStocks := CalculateTrends(configuration, stockList, db, "day", 3)
-		if len(trendingStocks) != 0 {
-			notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
-			sendMail(configuration, notifyMail)
+			symbolSlice := configuration.Symbols[start:end]
+			symbolString := convertStocksString(symbolSlice)
+
+			var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
+			body := getDataFromURL(urlStocks)
+
+			jsonString := sanitizeBody("google", body)
+			fmt.Println(jsonString)
+
+			stockList := make([]Stock, 0)
+			stockList = parseJSONData(jsonString)
+
+			trendingStocks := CalculateTrends(configuration, stockList, db, "day", 3)
+			if len(trendingStocks) != 0 {
+				notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
+				sendMail(configuration, notifyMail)
+			}
+
+			count++
 		}
 
 		os.Exit(0)
 
 		break
 	case "trendMailHourly":
-		symbolString := convertStocksString(configuration.Symbols)
-		var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
-		body := getDataFromURL(urlStocks)
+		interval := true
+		count := 0
+		for interval {
 
-		jsonString := sanitizeBody("google", body)
+			start := count * SYMBOL_INTERVAL
+			end := (count + 1) * SYMBOL_INTERVAL
 
-		stockList := make([]Stock, 0)
-		stockList = parseJSONData(jsonString)
+			if end > len(configuration.Symbols) {
+				end = len(configuration.Symbols)
+				interval = false
+			}
 
-		trendingStocks := CalculateTrends(configuration, stockList, db, "hour", 3)
-		if len(trendingStocks) != 0 {
-			notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
-			sendMail(configuration, notifyMail)
+			symbolSlice := configuration.Symbols[start:end]
+			symbolString := convertStocksString(symbolSlice)
+			var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
+			body := getDataFromURL(urlStocks)
+
+			jsonString := sanitizeBody("google", body)
+
+			stockList := make([]Stock, 0)
+			stockList = parseJSONData(jsonString)
+
+			trendingStocks := CalculateTrends(configuration, stockList, db, "hour", 3)
+			if len(trendingStocks) != 0 {
+				notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
+				sendMail(configuration, notifyMail)
+			}
+
+			count++
 		}
 
 		os.Exit(0)
 
 		break
 	case "update":
-		symbolString := convertStocksString(configuration.Symbols)
-		var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
-		body := getDataFromURL(urlStocks)
+		interval := true
+		count := 0
+		for interval {
 
-		jsonString := sanitizeBody("google", body)
+			start := count * SYMBOL_INTERVAL
+			end := (count + 1) * SYMBOL_INTERVAL
 
-		stockList := make([]Stock, 0)
-		stockList = parseJSONData(jsonString)
+			if end > len(configuration.Symbols) {
+				end = len(configuration.Symbols)
+				interval = false
+			}
 
-		fmt.Println("\t\tOn chosen hours")
-		notifyMail := composeMailTemplate(stockList, "update")
-		sendMail(configuration, notifyMail)
+			symbolSlice := configuration.Symbols[start:end]
+			symbolString := convertStocksString(symbolSlice)
+			var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
+			body := getDataFromURL(urlStocks)
+
+			jsonString := sanitizeBody("google", body)
+
+			stockList := make([]Stock, 0)
+			stockList = parseJSONData(jsonString)
+
+			fmt.Println("\t\tOn chosen hours")
+			notifyMail := composeMailTemplate(stockList, "update")
+			sendMail(configuration, notifyMail)
+
+			count++
+		}
 
 		os.Exit(0)
 
