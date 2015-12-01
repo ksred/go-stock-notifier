@@ -30,6 +30,10 @@ type Configuration struct {
 	MySQLDB        string
 }
 
+const (
+	SYMBOL_INTERVAL = 50
+)
+
 func main() {
 
 	configuration := Configuration{}
@@ -39,34 +43,35 @@ func main() {
 
 	checkFlags(configuration, db)
 
-	symbolString := convertStocksString(configuration.Symbols)
+	// Do a loop over symbols
+	interval := true
+	count := 0
+	for interval {
 
-	// Yahoo: http://chartapi.finance.yahoo.com/instrument/1.0/msft/chartdata;type=quote;ys=2005;yz=4;ts=1234567890/json
-	// URL to get detailed company information for a single stock
-	// var urlDetailed string = "https://www.google.com/finance?q=JSE%3AIMP&q=JSE%3ANPN&ei=TrUBVomhAsKcUsP5mZAG&output=json"
-	// URL to get broad financials for multiple stocks
-	var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
+		start := count * SYMBOL_INTERVAL
+		end := (count + 1) * SYMBOL_INTERVAL
 
-	/*
-		body := getDataFromURL(urlStocks)
+		if end > len(configuration.Symbols) {
+			end = len(configuration.Symbols)
+			interval = false
+		}
 
-		jsonString := sanitizeBody("google", body)
+		symbolSlice := configuration.Symbols[start:end]
+		symbolString := convertStocksString(symbolSlice)
 
-		stockList := make([]Stock, 0)
-		stockList = parseJSONData(jsonString)
+		// Yahoo: http://chartapi.finance.yahoo.com/instrument/1.0/msft/chartdata;type=quote;ys=2005;yz=4;ts=1234567890/json
+		// URL to get detailed company information for a single stock
+		// var urlDetailed string = "https://www.google.com/finance?q=JSE%3AIMP&q=JSE%3ANPN&ei=TrUBVomhAsKcUsP5mZAG&output=json"
+		// URL to get broad financials for multiple stocks
+		var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
 
-		fmt.Println("\t\tOn chosen hours")
-		trendingStocks := CalculateTrends(configuration, stockList, db)
-		notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
-		fmt.Println(len(notifyMail))
-		sendMail(configuration, notifyMail)
+		// We check for updates every minute
+		//duration, _ := time.ParseDuration(configuration.UpdateInterval)
+		fmt.Printf("Go finance started, slice %d\n", count)
+		go updateAtInterval(60, urlStocks, configuration, db)
 
-		return
-	*/
-	// We check for updates every minute
-	//duration, _ := time.ParseDuration(configuration.UpdateInterval)
-	fmt.Println("Go finance started")
-	go updateAtInterval(60, urlStocks, configuration, db)
+		count++
+	}
 
 	select {} // this will cause the program to run forever
 }
