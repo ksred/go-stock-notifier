@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/Syfaro/telegram-bot-api"
 	"html/template"
 	"log"
 	"net/smtp"
@@ -211,4 +212,64 @@ func sendMail(configuration Configuration, notifyMail string) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func notifyTelegram(stockList []TrendingStock, configuration Configuration) {
+
+	bot, err := tgbotapi.NewBotAPI(configuration.TelegramBotApi)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	bot.Debug = true
+
+	fmt.Printf("Authorized on account %s", bot.Self.UserName)
+	botId, err := strconv.Atoi(configuration.TelegramBotID)
+	if err != nil {
+		fmt.Println("Could not convert telegram bot id")
+		return
+	}
+
+	notifyBot := ""
+	if len(stockList) == 0 {
+		notifyBot += "No trending stocks"
+		msg := tgbotapi.NewMessage(botId, notifyBot)
+		bot.Send(msg)
+
+		return
+	}
+
+	for i := range stockList {
+		stock := stockList[i]
+		notifyBot += fmt.Sprintf("%s\n", stock.Name)
+		notifyBot += fmt.Sprintf("%s: %s\n", stock.Symbol, stock.Exchange)
+		notifyBot += fmt.Sprintf("Change: %s : %s%%\n", stock.Change, stock.PercentageChange)
+		notifyBot += fmt.Sprintf("Open:   %s, Close:   %s\n", stock.Open, stock.Close)
+		notifyBot += fmt.Sprintf("High:   %s, Low:     %s\n", stock.High, stock.Low)
+		notifyBot += fmt.Sprintf("Volume: %s, Average Volume:     %s\n", stock.Volume, stock.AverageVolume)
+		notifyBot += fmt.Sprintf("High 52: %s, Low 52:     %s\n", stock.High52, stock.Low52)
+		notifyBot += fmt.Sprintf("Market Cap: %s\n", stock.MarketCap)
+		notifyBot += fmt.Sprintf("EPS: %s\n", stock.EPS)
+		notifyBot += fmt.Sprintf("Shares: %s\n", stock.Shares)
+
+		msg := tgbotapi.NewMessage(botId, notifyBot)
+		bot.Send(msg)
+	}
+
+	/*
+		u := tgbotapi.NewUpdate(0)
+		u.Timeout = 60
+
+		updates, err := bot.GetUpdatesChan(u)
+
+		for update := range updates {
+			fmt.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
+
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
+			msg.ReplyToMessageID = update.Message.MessageID
+
+			bot.Send(msg)
+		}
+	*/
+
 }

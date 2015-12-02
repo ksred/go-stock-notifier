@@ -28,6 +28,8 @@ type Configuration struct {
 	MySQLHost      string
 	MySQLPort      string
 	MySQLDB        string
+	TelegramBotApi string
+	TelegramBotID  string
 }
 
 const (
@@ -162,6 +164,22 @@ func checkFlags(configuration Configuration, db *sql.DB) {
 
 		os.Exit(0)
 		break
+	case "trendBot":
+		symbolString := convertStocksString(configuration.Symbols)
+		var urlStocks string = "https://www.google.com/finance/info?infotype=infoquoteall&q=" + symbolString
+		body := getDataFromURL(urlStocks)
+
+		jsonString := sanitizeBody("google", body)
+
+		stockList := make([]Stock, 0)
+		stockList = parseJSONData(jsonString)
+
+		trendingStocks := CalculateTrends(configuration, stockList, db, "day", 3)
+		notifyTelegram(trendingStocks, configuration)
+
+		os.Exit(0)
+
+		break
 	}
 }
 
@@ -223,6 +241,8 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 
 			// Send trending update
 			trendingStocks := CalculateTrends(configuration, stockList, db, "day", 3)
+			// Send to telegram
+			notifyTelegram(trendingStocks, configuration)
 			if len(trendingStocks) != 0 {
 				notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
 				sendMail(configuration, notifyMail)
