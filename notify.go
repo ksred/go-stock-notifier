@@ -230,9 +230,12 @@ func notifyTelegram(stockList []TrendingStock, configuration Configuration) {
 		return
 	}
 
-	notifyBot := ""
+	startMessage := "*** Start ***"
+	msg := tgbotapi.NewMessage(botId, startMessage)
+	bot.Send(msg)
+
 	if len(stockList) == 0 {
-		notifyBot += "No trending stocks"
+		notifyBot := "No trending stocks"
 		msg := tgbotapi.NewMessage(botId, notifyBot)
 		bot.Send(msg)
 
@@ -241,7 +244,7 @@ func notifyTelegram(stockList []TrendingStock, configuration Configuration) {
 
 	for i := range stockList {
 		stock := stockList[i]
-		notifyBot += fmt.Sprintf("%s\n", stock.Name)
+		notifyBot := fmt.Sprintf("%s\n", stock.Name)
 		notifyBot += fmt.Sprintf("%s: %s\n", stock.Symbol, stock.Exchange)
 		notifyBot += fmt.Sprintf("Change: %s : %s%%\n", stock.Change, stock.PercentageChange)
 		notifyBot += fmt.Sprintf("https://www.google.com/finance?q=%s:%s&ei=S0gVVvGqK4vHUdr9joAG\n\n", stock.Symbol, stock.Exchange)
