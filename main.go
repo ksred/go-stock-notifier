@@ -75,6 +75,9 @@ func main() {
 		count++
 	}
 
+	// @FIXME Send through only the stocks not the URL
+	//go notifyAtInterval(60, urlStocks, configuration, db)
+
 	select {} // this will cause the program to run forever
 }
 
@@ -213,6 +216,52 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 				stockList = parseJSONData(jsonString)
 
 				saveToDB(db, stockList, configuration)
+			}
+		}
+
+		// Get close
+		if weekday != 6 && weekday != 0 && hour == 17 && minute == 15 {
+			body := getDataFromURL(urlStocks)
+
+			jsonString := sanitizeBody("google", body)
+
+			stockList := make([]Stock, 0)
+			stockList = parseJSONData(jsonString)
+
+			saveToDB(db, stockList, configuration)
+
+		}
+		fmt.Println("END. Location:", t.Location(), ":Time:", t)
+	}
+}
+
+func notifyAtInterval(n time.Duration, urlStocks string, configuration Configuration, db *sql.DB) {
+	for _ = range time.Tick(n * time.Second) {
+		t := time.Now()
+		fmt.Println("BEGIN. Location:", t.Location(), ":Time:", t)
+		utc, err := time.LoadLocation(configuration.TimeZone)
+		if err != nil {
+			fmt.Println("err: ", err.Error())
+			return
+		}
+		hour := t.In(utc).Hour()
+		minute := t.In(utc).Minute()
+		weekday := t.In(utc).Weekday()
+
+		// This must only be run when the markets are open
+		if weekday != 6 && weekday != 0 && hour >= 9 && hour < 17 {
+			fmt.Println("\tFalls within operating hours")
+			fmt.Println(hour)
+			fmt.Println(minute)
+			// Save results every 15 minutes
+			if math.Mod(float64(minute), 15.) == 0 {
+				fmt.Println("\tFalls within 15 minute interval ")
+				body := getDataFromURL(urlStocks)
+
+				jsonString := sanitizeBody("google", body)
+
+				stockList := make([]Stock, 0)
+				stockList = parseJSONData(jsonString)
 				// Mail every X, here is 2 hours
 				if minute == 15 {
 					switch hour {
@@ -236,8 +285,6 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 
 			stockList := make([]Stock, 0)
 			stockList = parseJSONData(jsonString)
-
-			saveToDB(db, stockList, configuration)
 
 			// Send trending update
 			trendingStocks := CalculateTrends(configuration, stockList, db, "day", 3)
