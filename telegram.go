@@ -118,6 +118,7 @@ func processStockBotCommand(response []string, configuration Configuration, repl
 
 	if count == 0 {
 		sendTelegramBotMessage("Stock not found", configuration, replyId)
+		return
 	}
 
 	message := fmt.Sprintf("%s:%s\nClose: %v\nVolume: %v\nChange: %v%%", response[1], response[2], stockClose, stockVolume, stockChange)
