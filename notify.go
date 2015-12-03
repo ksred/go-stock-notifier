@@ -212,3 +212,24 @@ func sendMail(configuration Configuration, notifyMail string) {
 		log.Fatal(err)
 	}
 }
+
+func notifyTelegramTrends(stockList []TrendingStock, configuration Configuration) {
+	notifyBot := ""
+	if len(stockList) == 0 {
+		notifyBot += "No trending stocks"
+		sendTelegramBotMessage(notifyBot, configuration, 0)
+
+		return
+	}
+
+	for i := range stockList {
+		stock := stockList[i]
+		notifyBot := fmt.Sprintf("%s\n", stock.Name)
+		notifyBot += fmt.Sprintf("%s: %s\n", stock.Symbol, stock.Exchange)
+		notifyBot += fmt.Sprintf("Change: %s : %s%%\n", stock.Change, stock.PercentageChange)
+		notifyBot += fmt.Sprintf("https://www.google.com/finance?q=%s:%s&ei=S0gVVvGqK4vHUdr9joAG\n\n", stock.Symbol, stock.Exchange)
+
+		sendTelegramBotMessage(notifyBot, configuration, 0)
+	}
+
+}

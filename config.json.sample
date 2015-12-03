@@ -14,4 +14,5 @@
     "MySQLHost"         :   "mysql_ip",
     "MySQLPort"         :   "mysql_port" 
     "MySQLDB"           :   "mysql_database" 
+    "TelegramBotApi"    :   "telegram:apiToken"
 }
