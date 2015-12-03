@@ -224,7 +224,7 @@ func notifyTelegramTrends(stockList []TrendingStock, configuration Configuration
 
 	for i := range stockList {
 		stock := stockList[i]
-		notifyBot += fmt.Sprintf("%s\n", stock.Name)
+		notifyBot := fmt.Sprintf("%s\n", stock.Name)
 		notifyBot += fmt.Sprintf("%s: %s\n", stock.Symbol, stock.Exchange)
 		notifyBot += fmt.Sprintf("Change: %s : %s%%\n", stock.Change, stock.PercentageChange)
 		notifyBot += fmt.Sprintf("https://www.google.com/finance?q=%s:%s&ei=S0gVVvGqK4vHUdr9joAG\n\n", stock.Symbol, stock.Exchange)
