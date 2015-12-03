@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/Syfaro/telegram-bot-api"
 	"html/template"
 	"log"
 	"net/smtp"
@@ -214,27 +213,11 @@ func sendMail(configuration Configuration, notifyMail string) {
 	}
 }
 
-func notifyTelegram(stockList []TrendingStock, configuration Configuration) {
-
-	bot, err := tgbotapi.NewBotAPI(configuration.TelegramBotApi)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	bot.Debug = true
-
-	fmt.Printf("Authorized on account %s", bot.Self.UserName)
-	botId, err := strconv.Atoi(configuration.TelegramBotID)
-	if err != nil {
-		fmt.Println("Could not convert telegram bot id")
-		return
-	}
-
+func notifyTelegramTrends(stockList []TrendingStock, configuration Configuration) {
 	notifyBot := ""
 	if len(stockList) == 0 {
 		notifyBot += "No trending stocks"
-		msg := tgbotapi.NewMessage(botId, notifyBot)
-		bot.Send(msg)
+		sendTelegramBotMessage(notifyBot, configuration, 0)
 
 		return
 	}
@@ -246,24 +229,7 @@ func notifyTelegram(stockList []TrendingStock, configuration Configuration) {
 		notifyBot += fmt.Sprintf("Change: %s : %s%%\n", stock.Change, stock.PercentageChange)
 		notifyBot += fmt.Sprintf("https://www.google.com/finance?q=%s:%s&ei=S0gVVvGqK4vHUdr9joAG\n\n", stock.Symbol, stock.Exchange)
 
-		msg := tgbotapi.NewMessage(botId, notifyBot)
-		bot.Send(msg)
+		sendTelegramBotMessage(notifyBot, configuration, 0)
 	}
-
-	/*
-		u := tgbotapi.NewUpdate(0)
-		u.Timeout = 60
-
-		updates, err := bot.GetUpdatesChan(u)
-
-		for update := range updates {
-			fmt.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
-
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-			msg.ReplyToMessageID = update.Message.MessageID
-
-			bot.Send(msg)
-		}
-	*/
 
 }

@@ -45,6 +45,9 @@ func main() {
 
 	checkFlags(configuration, db)
 
+	// Start Telegram bot
+	go startTelegramBot(configuration)
+
 	// Do a loop over symbols
 	interval := true
 	count := 0
@@ -175,7 +178,7 @@ func checkFlags(configuration Configuration, db *sql.DB) {
 		stockList = parseJSONData(jsonString)
 
 		trendingStocks := CalculateTrends(configuration, stockList, db, "day", 3)
-		notifyTelegram(trendingStocks, configuration)
+		notifyTelegramTrends(trendingStocks, configuration)
 
 		os.Exit(0)
 
@@ -242,7 +245,7 @@ func updateAtInterval(n time.Duration, urlStocks string, configuration Configura
 			// Send trending update
 			trendingStocks := CalculateTrends(configuration, stockList, db, "day", 3)
 			// Send to telegram
-			notifyTelegram(trendingStocks, configuration)
+			notifyTelegramTrends(trendingStocks, configuration)
 			if len(trendingStocks) != 0 {
 				notifyMail := composeMailTemplateTrending(trendingStocks, "trend")
 				sendMail(configuration, notifyMail)
