@@ -1,5 +1,7 @@
 # A Stock Notifier using Golang
 
+[![Join the chat at https://gitter.im/ksred/go-stock-notifier](https://badges.gitter.im/ksred/go-stock-notifier.svg)](https://gitter.im/ksred/go-stock-notifier?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 _This is a project I am creating to learn the Go language_
 
 The aim of this project is to:
